@@ -278,7 +278,7 @@ export default function Home() {
                 <select
                   value={fromCity}
                   onChange={(e) => setFromCity(e.target.value)}
-                  className="h-12 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 text-sm font-medium outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                  className="h-12 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 text-sm font-medium text-gray-700 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
                 >
                   <option value="">{t.allCities}</option>
                   {CITIES.map((c) => (
@@ -296,7 +296,7 @@ export default function Home() {
                 <select
                   value={toCity}
                   onChange={(e) => setToCity(e.target.value)}
-                  className="h-12 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 text-sm font-medium outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                  className="h-12 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 text-sm font-medium text-gray-700 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
                 >
                   <option value="">{t.allCities}</option>
                   {CITIES.map((c) => (
