@@ -147,6 +147,7 @@ function SeatDots({ available, total }: { available: number; total: number }) {
 
 export default function Home() {
   const [lang, setLang] = useState<Lang>("ka");
+  const [user, setUser] = useState<any>(null);
   const t = T[lang];
   const [rides, setRides] = useState<Ride[]>([]);
   const [loading, setLoading] = useState(true);
@@ -185,10 +186,21 @@ export default function Home() {
     load("", "");
   }
 
-  useEffect(() => {
-    load();
-  }, []);
+  async function logout() {
+  await supabase.auth.signOut();
+  window.location.reload();
+}
 
+useEffect(() => {
+  load();
+
+  async function getUser() {
+    const { data } = await supabase.auth.getUser();
+    setUser(data.user);
+  }
+
+  getUser();
+}, []);
   const totalSeats = rides.reduce((s, r) => s + r.seats_available, 0);
   const coveredCities = new Set(rides.map((r) => r.to_city)).size;
 
@@ -213,20 +225,58 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setLang((l) => (l === "en" ? "ka" : "en"))}
-              className="rounded-xl border border-violet-200 bg-white px-3 py-1.5 text-xs font-bold text-violet-600 transition hover:bg-violet-50"
-            >
-              {lang === "en" ? "🇬🇪 KA" : "🇬🇧 EN"}
-            </button>
 
-            <Link
-              href="/post"
-              className="rounded-xl bg-violet-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-violet-700"
-            >
-              + {t.postRide}
-            </Link>
-          </div>
+          <button
+            onClick={() => setLang((l) => (l === "en" ? "ka" : "en"))}
+            className="rounded-xl border border-violet-200 bg-white px-3 py-1.5 text-xs font-bold text-violet-600 transition hover:bg-violet-50"
+          >
+            {lang === "en" ? "🇬🇪 KA" : "🇬🇧 EN"}
+          </button>
+            
+          {user ? (
+            <>
+              <span className="text-sm font-semibold text-gray-700">
+                👤 {user.email}
+              </span>
+          
+              <button
+                onClick={logout}
+                className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50"
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/auth"
+                className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50"
+              >
+                Sign In
+              </Link>
+          
+              <Link
+                href="/auth?mode=signup"
+                className="rounded-xl bg-violet-600 px-4 py-2 text-sm font-bold text-white hover:bg-violet-700"
+              >
+                Sign Up
+              </Link>
+            </>
+          )}
+            
+          <Link
+            href="/post"
+            className="rounded-xl bg-violet-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-violet-700"
+          >
+            + {t.postRide}
+          </Link>
+          <Link
+            href="/my-rides"
+            className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50">
+            My rides
+          </Link>
+            
+        </div>
         </div>
       </nav>
 

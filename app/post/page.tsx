@@ -77,12 +77,19 @@ export default function PostPage() {
   const [seatsTotal, setSeatsTotal] = useState("3");
   const [phone, setPhone] = useState("");
   const [vehicleType, setVehicleType] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setMessage("");
+
+    const { data: userData } = await supabase.auth.getUser();
+
+    if (!userData.user) {
+      router.push("/auth");
+      return;
+    }
 
     if (!fromCity || !toCity || !departureTime || !pricePerSeat || !seatsTotal || !phone) {
       setMessage(t.error);
@@ -90,7 +97,11 @@ export default function PostPage() {
     }
 
     if (fromCity === toCity) {
-      setMessage(lang === "ka" ? "საწყისი და საბოლოო ქალაქი ერთნაირი ვერ იქნება" : "From and To cannot be the same");
+      setMessage(
+        lang === "ka"
+          ? "საწყისი და საბოლოო ქალაქი ერთნაირი ვერ იქნება"
+          : "From and To cannot be the same"
+      );
       return;
     }
 
@@ -101,6 +112,7 @@ export default function PostPage() {
 
     const { error } = await supabase.from("rides").insert([
       {
+        user_id: userData.user.id,
         from_city: fromCity,
         to_city: toCity,
         departure_time: new Date(departureTime).toISOString(),
@@ -150,7 +162,7 @@ export default function PostPage() {
 
           <button
             onClick={() => setLang((l) => (l === "en" ? "ka" : "en"))}
-            className="rounded-xl border border-violet-200 bg-white px-3 py-1.5 text-xs font-bold text-violet-600 transition hover:bg-violet-50"
+            className="rounded-xl border border-violet-200 bg-white px-3 py-1.5 text-xs font-bold text-violet-600 hover:bg-violet-50"
           >
             {lang === "en" ? "🇬🇪 KA" : "🇬🇧 EN"}
           </button>
@@ -163,123 +175,106 @@ export default function PostPage() {
           <p className="mt-2 text-gray-500">{t.sub}</p>
         </div>
 
-        <div className="overflow-hidden rounded-3xl border border-violet-100 bg-white shadow-[0_4px_30px_rgba(109,40,217,0.08)]">
+        <div className="overflow-hidden rounded-3xl border border-violet-100 bg-white shadow">
           <div className="bg-violet-600 px-6 py-4">
             <p className="text-sm font-bold text-violet-100">{t.title}</p>
           </div>
 
-          
-  <form onSubmit={handleSubmit} className="grid gap-5 p-5 sm:grid-cols-2 sm:p-6">
+          <form onSubmit={handleSubmit} className="grid gap-5 p-6 sm:grid-cols-2">
 
-    <div>
-      <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-gray-500">
-        {t.from}
-      </label>
-      <select
-        value={fromCity}
-        onChange={(e) => setFromCity(e.target.value)}
-        className="h-12 w-full rounded-2xl border border-gray-300 bg-white px-4 text-sm text-gray-800 outline-none transition placeholder-gray-500 focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
-        required
-      >
-        <option value="" className="text-gray-400">{t.choose}</option>
-        {CITIES.map((c) => (
-          <option key={c.en} value={c.en}>
-            {lang === "ka" ? c.ka : c.en}
-          </option>
-        ))}
-      </select>
-    </div>
+            <select
+              value={fromCity}
+              onChange={(e) => setFromCity(e.target.value)}
+              className="h-12 rounded-2xl border border-gray-300 bg-white px-4 text-gray-800"
+              required
+            >
+              <option value="" className="text-gray-400">{t.choose}</option>
+              {CITIES.map((c) => (
+                <option key={c.en} value={c.en}>
+                  {lang === "ka" ? c.ka : c.en}
+                </option>
+              ))}
+            </select>
 
-    <div>
-      <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-gray-500">
-        {t.to}
-      </label>
-      <select
-        value={toCity}
-        onChange={(e) => setToCity(e.target.value)}
-        className="h-12 w-full rounded-2xl border border-gray-300 bg-white px-4 text-sm text-gray-800 outline-none transition placeholder-gray-500 focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
-        required
-      >
-        <option value="" className="text-gray-400">{t.choose}</option>
-        {CITIES.map((c) => (
-          <option key={c.en} value={c.en}>
-            {lang === "ka" ? c.ka : c.en}
-          </option>
-        ))}
-      </select>
-    </div>
+            <select
+              value={toCity}
+              onChange={(e) => setToCity(e.target.value)}
+              className="h-12 rounded-2xl border border-gray-300 bg-white px-4 text-gray-800"
+              required
+            >
+              <option value="" className="text-gray-400">{t.choose}</option>
+              {CITIES.map((c) => (
+                <option key={c.en} value={c.en}>
+                  {lang === "ka" ? c.ka : c.en}
+                </option>
+              ))}
+            </select>
 
-    <div>
-      <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-gray-500">
-        {t.departure}
-      </label>
-      <input
-        type="datetime-local"
-        value={departureTime}
-        onChange={(e) => setDepartureTime(e.target.value)}
-        className="h-12 w-full rounded-2xl border border-gray-300 bg-white px-4 text-sm text-gray-800 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
-        required
-      />
-    </div>
+            <input
+              type="datetime-local"
+              value={departureTime}
+              onChange={(e) => setDepartureTime(e.target.value)}
+              className="h-12 rounded-2xl border border-gray-300 bg-white px-4 text-gray-800"
+              required
+            />
 
-    <div>
-      <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-gray-500">
-        {t.price}
-      </label>
-      <input
-        type="number"
-        min="1"
-        step="1"
-        value={pricePerSeat}
-        onChange={(e) => setPricePerSeat(e.target.value)}
-        placeholder="15"
-        className="h-12 w-full rounded-2xl border border-gray-300 bg-white px-4 text-sm text-gray-800 placeholder-gray-500 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
-        required
-      />
-    </div>
+            <input
+              type="number"
+              value={pricePerSeat}
+              onChange={(e) => setPricePerSeat(e.target.value)}
+              placeholder="15"
+              className="h-12 rounded-2xl border border-gray-300 bg-white px-4 text-gray-800 placeholder-gray-500"
+              required
+            />
 
-    <div>
-      <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-gray-500">
-        {t.seats}
-      </label>
-      <input
-        type="number"
-        min="1"
-        max="20"
-        step="1"
-        value={seatsTotal}
-        onChange={(e) => setSeatsTotal(e.target.value)}
-        className="h-12 w-full rounded-2xl border border-gray-300 bg-white px-4 text-sm text-gray-800 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
-        required
-      />
-    </div>
+            <input
+              type="number"
+              value={seatsTotal}
+              onChange={(e) => setSeatsTotal(e.target.value)}
+              className="h-12 rounded-2xl border border-gray-300 bg-white px-4 text-gray-800"
+              required
+            />
 
-    <div>
-      <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-gray-500">
-        {t.phone}
-      </label>
-      <input
-        type="tel"
-        value={phone}
-        onChange={(e) => setPhone(e.target.value)}
-        placeholder="599123456"
-        className="h-12 w-full rounded-2xl border border-gray-300 bg-white px-4 text-sm text-gray-800 placeholder-gray-500 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
-        required
-      />
-    </div>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="599123456"
+              className="h-12 rounded-2xl border border-gray-300 bg-white px-4 text-gray-800 placeholder-gray-500"
+              required
+            />
 
-    <div className="sm:col-span-2">
-      <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-gray-500">
-        {t.vehicle}
-      </label>
-      <input
-        type="text"
-        value={vehicleType}
-        onChange={(e) => setVehicleType(e.target.value)}
-        placeholder={t.placeholderVehicle}
-        className="h-12 w-full rounded-2xl border border-gray-300 bg-white px-4 text-sm text-gray-800 placeholder-gray-500 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
-      />
-    </div>
+            <input
+              type="text"
+              value={vehicleType}
+              onChange={(e) => setVehicleType(e.target.value)}
+              placeholder={t.placeholderVehicle}
+              className="h-12 rounded-2xl border border-gray-300 bg-white px-4 text-gray-800 placeholder-gray-500 sm:col-span-2"
+            />
+
+            {message && (
+              <div className="sm:col-span-2 text-sm font-semibold text-violet-700">
+                {message}
+              </div>
+            )}
+
+            <div className="flex gap-3 sm:col-span-2">
+              <button
+                type="submit"
+                disabled={loading}
+                className="h-12 rounded-2xl bg-violet-600 px-6 font-bold text-white hover:bg-violet-700"
+              >
+                {loading ? t.publishing : t.submit}
+              </button>
+
+              <Link
+                href="/"
+                className="flex h-12 items-center rounded-2xl border border-gray-200 px-5 font-bold text-gray-600"
+              >
+                {t.back}
+              </Link>
+            </div>
+
           </form>
         </div>
       </div>
