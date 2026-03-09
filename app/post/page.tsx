@@ -168,141 +168,118 @@ export default function PostPage() {
             <p className="text-sm font-bold text-violet-100">{t.title}</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="grid gap-5 p-5 sm:grid-cols-2 sm:p-6">
-            <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-gray-500">
-                {t.from}
-              </label>
-              <select
-                value={fromCity}
-                onChange={(e) => setFromCity(e.target.value)}
-                className="h-12 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 text-sm font-medium outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
-                required
-              >
-                <option value="">{t.choose}</option>
-                {CITIES.map((c) => (
-                  <option key={c.en} value={c.en}>
-                    {lang === "ka" ? c.ka : c.en}
-                  </option>
-                ))}
-              </select>
-            </div>
+          
+  <form onSubmit={handleSubmit} className="grid gap-5 p-5 sm:grid-cols-2 sm:p-6">
 
-            <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-gray-500">
-                {t.to}
-              </label>
-              <select
-                value={toCity}
-                onChange={(e) => setToCity(e.target.value)}
-                className="h-12 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 text-sm font-medium outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
-                required
-              >
-                <option value="">{t.choose}</option>
-                {CITIES.map((c) => (
-                  <option key={c.en} value={c.en}>
-                    {lang === "ka" ? c.ka : c.en}
-                  </option>
-                ))}
-              </select>
-            </div>
+    <div>
+      <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-gray-500">
+        {t.from}
+      </label>
+      <select
+        value={fromCity}
+        onChange={(e) => setFromCity(e.target.value)}
+        className="h-12 w-full rounded-2xl border border-gray-300 bg-white px-4 text-sm text-gray-800 outline-none transition placeholder-gray-500 focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
+        required
+      >
+        <option value="" className="text-gray-400">{t.choose}</option>
+        {CITIES.map((c) => (
+          <option key={c.en} value={c.en}>
+            {lang === "ka" ? c.ka : c.en}
+          </option>
+        ))}
+      </select>
+    </div>
 
-            <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-gray-500">
-                {t.departure}
-              </label>
-              <input
-                type="datetime-local"
-                value={departureTime}
-                onChange={(e) => setDepartureTime(e.target.value)}
-                className="h-12 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 text-sm font-medium outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
-                required
-              />
-            </div>
+    <div>
+      <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-gray-500">
+        {t.to}
+      </label>
+      <select
+        value={toCity}
+        onChange={(e) => setToCity(e.target.value)}
+        className="h-12 w-full rounded-2xl border border-gray-300 bg-white px-4 text-sm text-gray-800 outline-none transition placeholder-gray-500 focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
+        required
+      >
+        <option value="" className="text-gray-400">{t.choose}</option>
+        {CITIES.map((c) => (
+          <option key={c.en} value={c.en}>
+            {lang === "ka" ? c.ka : c.en}
+          </option>
+        ))}
+      </select>
+    </div>
 
-            <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-gray-500">
-                {t.price}
-              </label>
-              <input
-                type="number"
-                min="1"
-                step="1"
-                value={pricePerSeat}
-                onChange={(e) => setPricePerSeat(e.target.value)}
-                placeholder="15"
-                className="h-12 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 text-sm font-medium outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
-                required
-              />
-            </div>
+    <div>
+      <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-gray-500">
+        {t.departure}
+      </label>
+      <input
+        type="datetime-local"
+        value={departureTime}
+        onChange={(e) => setDepartureTime(e.target.value)}
+        className="h-12 w-full rounded-2xl border border-gray-300 bg-white px-4 text-sm text-gray-800 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
+        required
+      />
+    </div>
 
-            <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-gray-500">
-                {t.seats}
-              </label>
-              <input
-                type="number"
-                min="1"
-                max="20"
-                step="1"
-                value={seatsTotal}
-                onChange={(e) => setSeatsTotal(e.target.value)}
-                className="h-12 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 text-sm font-medium outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
-                required
-              />
-            </div>
+    <div>
+      <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-gray-500">
+        {t.price}
+      </label>
+      <input
+        type="number"
+        min="1"
+        step="1"
+        value={pricePerSeat}
+        onChange={(e) => setPricePerSeat(e.target.value)}
+        placeholder="15"
+        className="h-12 w-full rounded-2xl border border-gray-300 bg-white px-4 text-sm text-gray-800 placeholder-gray-500 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
+        required
+      />
+    </div>
 
-            <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-gray-500">
-                {t.phone}
-              </label>
-              <input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="599123456"
-                className="h-12 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 text-sm font-medium outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
-                required
-              />
-            </div>
+    <div>
+      <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-gray-500">
+        {t.seats}
+      </label>
+      <input
+        type="number"
+        min="1"
+        max="20"
+        step="1"
+        value={seatsTotal}
+        onChange={(e) => setSeatsTotal(e.target.value)}
+        className="h-12 w-full rounded-2xl border border-gray-300 bg-white px-4 text-sm text-gray-800 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
+        required
+      />
+    </div>
 
-            <div className="sm:col-span-2">
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-gray-500">
-                {t.vehicle}
-              </label>
-              <input
-                type="text"
-                value={vehicleType}
-                onChange={(e) => setVehicleType(e.target.value)}
-                placeholder={t.placeholderVehicle}
-                className="h-12 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 text-sm font-medium outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
-              />
-            </div>
+    <div>
+      <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-gray-500">
+        {t.phone}
+      </label>
+      <input
+        type="tel"
+        value={phone}
+        onChange={(e) => setPhone(e.target.value)}
+        placeholder="599123456"
+        className="h-12 w-full rounded-2xl border border-gray-300 bg-white px-4 text-sm text-gray-800 placeholder-gray-500 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
+        required
+      />
+    </div>
 
-            {message && (
-              <div className="sm:col-span-2">
-                <div className="rounded-2xl border border-violet-100 bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-700">
-                  {message}
-                </div>
-              </div>
-            )}
-
-            <div className="flex gap-3 sm:col-span-2">
-              <button
-                type="submit"
-                disabled={loading}
-                className="h-12 rounded-2xl bg-violet-600 px-6 text-sm font-bold text-white transition hover:bg-violet-700 disabled:opacity-50"
-              >
-                {loading ? t.publishing : t.submit}
-              </button>
-
-              <Link
-                href="/"
-                className="inline-flex h-12 items-center rounded-2xl border border-gray-200 bg-gray-50 px-5 text-sm font-bold text-gray-600 transition hover:bg-gray-100"
-              >
-                {t.back}
-              </Link>
-            </div>
+    <div className="sm:col-span-2">
+      <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-gray-500">
+        {t.vehicle}
+      </label>
+      <input
+        type="text"
+        value={vehicleType}
+        onChange={(e) => setVehicleType(e.target.value)}
+        placeholder={t.placeholderVehicle}
+        className="h-12 w-full rounded-2xl border border-gray-300 bg-white px-4 text-sm text-gray-800 placeholder-gray-500 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
+      />
+    </div>
           </form>
         </div>
       </div>
