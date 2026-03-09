@@ -8,22 +8,22 @@ import GeorgianPlate from "../components/GeorgianPlate";
 import CustomSelect from "../components/CustomSelect";
 
 const CITIES = [
-  { en: "Tbilisi",   ka: "თბილისი",   img: "https://images.unsplash.com/photo-1565008576549-57569a49371d?w=400&q=80" },
-  { en: "Kutaisi",   ka: "ქუთაისი",   img: "https://images.unsplash.com/photo-1589656966895-2f33e7653819?w=400&q=80" },
-  { en: "Batumi",    ka: "ბათუმი",    img: "https://images.unsplash.com/photo-1567157577867-05ccb1388e66?w=400&q=80" },
-  { en: "Zugdidi",   ka: "ზუგდიდი",   img: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80" },
-  { en: "Gori",      ka: "გორი",      img: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&q=80" },
-  { en: "Rustavi",   ka: "რუსთავი",   img: "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=400&q=80" },
-  { en: "Telavi",    ka: "თელავი",    img: "https://images.unsplash.com/photo-1516483638261-f4dbaf036963?w=400&q=80" },
-  { en: "Borjomi",   ka: "ბორჯომი",   img: "https://images.unsplash.com/photo-1448375240586-882707db888b?w=400&q=80" },
-  { en: "Bakuriani", ka: "ბაკურიანი", img: "https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?w=400&q=80" },
-  { en: "Gudauri",   ka: "გუდაური",   img: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=400&q=80" },
-  { en: "Poti",      ka: "ფოთი",      img: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&q=80" },
-  { en: "Senaki",    ka: "სენაკი",    img: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=400&q=80" },
-  { en: "Samtredia", ka: "სამტრედია", img: "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=400&q=80" },
-  { en: "Kobuleti",  ka: "ქობულეთი",  img: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&q=80" },
-  { en: "Ozurgeti",  ka: "ოზურგეთი",  img: "https://images.unsplash.com/photo-1501854140801-50d01698950b?w=400&q=80" },
-  { en: "Mestia",    ka: "მესტია",    img: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=400&q=80" },
+  { en: "Tbilisi",   ka: "თბილისი",   img: "/cities/tbilisi.jpg" },
+  { en: "Kutaisi",   ka: "ქუთაისი",   img: "/cities/kutaisi.jpg" },
+  { en: "Batumi",    ka: "ბათუმი",    img: "/cities/batumi.jpg" },
+  { en: "Zugdidi",   ka: "ზუგდიდი",   img: "/cities/zugdidi.jpg" },
+  { en: "Gori",      ka: "გორი",      img: "/cities/gori.jpg" },
+  { en: "Rustavi",   ka: "რუსთავი",   img: "/cities/rustavi.jpg" },
+  { en: "Telavi",    ka: "თელავი",    img: "/cities/telavi.jpg" },
+  { en: "Borjomi",   ka: "ბორჯომი",   img: "/cities/borjomi.jpg" },
+  { en: "Bakuriani", ka: "ბაკურიანი", img: "/cities/bakuriani.jpg" },
+  { en: "Gudauri",   ka: "გუდაური",   img: "/cities/gudauri.jpg" },
+  { en: "Poti",      ka: "ფოთი",      img: "/cities/poti.jpg" },
+  { en: "Senaki",    ka: "სენაკი",    img: "/cities/senaki.jpg" },
+  { en: "Samtredia", ka: "სამტრედია", img: "/cities/samtredia.jpg" },
+  { en: "Kobuleti",  ka: "ქობულეთი",  img: "/cities/kobuleti.jpg" },
+  { en: "Ozurgeti",  ka: "ოზურგეთი",  img: "/cities/ozurgeti.jpg" },
+  { en: "Mestia",    ka: "მესტია",    img: "/cities/mestia.jpg" },
 ] as const;
 
 const VEHICLE_COLORS: Record<string, { hex: string; ka: string; border: string }> = {

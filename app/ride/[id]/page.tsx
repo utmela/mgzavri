@@ -308,7 +308,7 @@ export default function RidePage() {
                     </div>
                     <div>
                       <p className="font-semibold text-gray-800 text-sm">{b.passenger_name}</p>
-                      <p className="text-xs text-gray-400">{b.phone}</p>
+                      <p className="text-xs text-gray-400">{b.phone} · {b.seats_booked} {t.seatsLeft}</p>
                     </div>
                   </div>
                   <a href={`tel:${b.phone}`}
