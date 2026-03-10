@@ -55,7 +55,7 @@ const T = {
     ad: "Advertisement", advertise: "Advertise with us", whereTo: "Where do you want to go?",
     myRides: "My rides", signIn: "Sign in", signUp: "Sign up", logout: "Logout",
     sort: "Sort", sortTime: "By time", sortPrice: "Price ↑", sortPriceDesc: "Price ↓",
-    vehicle: "Vehicle", plate: "Plate", color: "Color",
+    vehicle: "Vehicle", plate: "Plate", color: "Color", myBookings: "My bookings", 
   },
   ka: {
     tagline: "შენი მგზავრობა საქართველოში",
@@ -70,7 +70,7 @@ const T = {
     ad: "რეკლამა", advertise: "განათავსეთ რეკლამა აქ", whereTo: "სად გინდა წასვლა?",
     myRides: "ჩემი მოგზაურობები", signIn: "შესვლა", signUp: "რეგისტრაცია", logout: "გასვლა",
     sort: "სორტირება", sortTime: "დროით", sortPrice: "ფასი ↑", sortPriceDesc: "ფასი ↓",
-    vehicle: "მანქანა", plate: "ნომერი", color: "ფერი",
+    vehicle: "მანქანა", plate: "ნომერი", color: "ფერი", myBookings: "ჩემი ჯავშნები",
   },
 } as const;
 
@@ -204,6 +204,7 @@ export default function Home() {
   const [toCity, setToCity] = useState("");
   const [sortMode, setSortMode] = useState("time");
   const [bookRide, setBookRide] = useState<Ride | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const t = T[lang];
 
   async function load(from = fromCity, to = toCity, sort = sortMode) {
@@ -225,9 +226,26 @@ export default function Home() {
   async function logout() { await supabase.auth.signOut(); window.location.reload(); }
 
   useEffect(() => {
-    load();
-    supabase.auth.getUser().then(({ data }) => setUser(data.user));
-  }, []);
+  load();
+
+  async function getUser() {
+    const { data } = await supabase.auth.getUser();
+    setUser(data.user);
+  }
+
+  getUser();
+}, []);
+
+useEffect(() => {
+  function closeMenu() {
+    setMenuOpen(false);
+  }
+
+  
+
+  window.addEventListener("click", closeMenu);
+  return () => window.removeEventListener("click", closeMenu);
+}, []);
 
   const totalSeats    = rides.reduce((s, r) => s + r.seats_available, 0);
   const coveredCities = new Set(rides.map((r) => r.to_city)).size;
@@ -236,43 +254,105 @@ export default function Home() {
     <div className="min-h-screen font-sans bg-gray-50">
 
       {/* ── NAV ── */}
-      <nav className="sticky top-0 z-50 border-b border-gray-200/80"
-        style={{ background: "rgba(255,255,255,0.96)", backdropFilter: "blur(20px)" }}>
+      <nav className="sticky top-0 z-50 border-b border-violet-100 bg-white/90 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-          <Link href="/" className="flex items-center gap-3 shrink-0">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-600 text-xl shadow-lg shadow-violet-200">🚐</div>
-            <span className="text-xl font-black text-gray-900 tracking-tight">mgzavri</span>
+
+          {/* LEFT — LOGO */}
+          <Link href="/" className="flex items-center gap-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-violet-600 text-lg text-white shadow-sm">
+              🚐
+            </div>
+            <span className="text-xl font-black text-violet-700">
+              mgzavri
+            </span>
           </Link>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setLang((l) => l === "en" ? "ka" : "en")}
-              className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-bold text-gray-600 hover:bg-gray-100 transition">
-              <span className="text-sm">{lang === "en" ? "🇬🇪" : "🇬🇧"}</span>
-              <span>{lang === "en" ? "KA" : "EN"}</span>
+
+
+        {/* RIGHT — USER / LANGUAGE */}
+        <div className="flex items-center gap-2">
+          
+          {/* Language */}
+          <button
+            onClick={() => setLang((l) => (l === "en" ? "ka" : "en"))}
+            className="rounded-xl border border-violet-200 bg-white px-3 py-1.5 text-xs font-bold text-violet-600 hover:bg-violet-50 transition"
+          >
+            {lang === "en" ? "🇬🇪 KA" : "🇬🇧 EN"}
+          </button>
+          
+          {!user ? (
+            <>
+              <Link
+                href="/auth"
+                className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50 transition"
+              >
+                {t.signIn}
+              </Link>
+          
+              <Link
+                href="/auth?mode=signup"
+                className="rounded-xl bg-violet-600 px-4 py-2 text-sm font-bold text-white hover:bg-violet-700 transition"
+              >
+                {t.signUp}
+              </Link>
+            </>
+          ) : (
+           <div className="relative">
+
+            <button
+              onClick={(e) => { 
+                e.stopPropagation();
+                setMenuOpen(!menuOpen)
+              }}
+              className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
+            >
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-violet-600 text-white text-xs font-bold">
+                {user.email?.[0]?.toUpperCase()}
+              </div>
+
+              <span className="text-gray-400 text-xs">▾</span>
             </button>
-            {user ? (
-              <>
-                <div className="hidden sm:flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-1.5">
-                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-violet-100 text-[10px] font-black text-violet-700">
-                    {user.email?.[0]?.toUpperCase()}
-                  </div>
-                  <span className="text-xs font-semibold text-gray-600 max-w-[110px] truncate">{user.email}</span>
-                </div>
-                <Link href="/my-rides" className="rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-50 transition hidden sm:block">{t.myRides}</Link>
-                <button onClick={logout} className="rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-50 transition">{t.logout}</button>
-              </>
-            ) : (
-              <>
-                <Link href="/auth" className="rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-50 transition hidden sm:block">{t.signIn}</Link>
-                <Link href="/auth" className="rounded-xl border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-bold text-violet-700 hover:bg-violet-100 transition hidden sm:block">{t.signUp}</Link>
-              </>
+
+            {menuOpen && (
+              <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-gray-200 bg-white shadow-lg overflow-hidden">
+              
+                <Link
+                  href="/my-bookings"
+                  className="block px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  📖 {t.myBookings}
+                </Link>
+            
+                <Link
+                  href="/my-rides"
+                  className="block px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  🚐 {t.myRides}
+                </Link>
+            
+                <Link
+                  href="/post"
+                  className="block px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  ➕ {t.postRide}
+                </Link>
+            
+                <button
+                  onClick={logout}
+                  className="w-full text-left px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50"
+                >
+                  🚪 {t.logout}
+                </button>
+            
+              </div>
             )}
-            <Link href="/post" className="flex items-center gap-1.5 rounded-xl bg-violet-600 px-4 py-2 text-xs font-black text-white hover:bg-violet-700 transition shadow-md shadow-violet-200">
-              <span className="text-sm leading-none">+</span><span>{t.postRide}</span>
-            </Link>
+
           </div>
+          )}
+        
+        </div>
+            
         </div>
       </nav>
-
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
 
         {/* ── HERO ── */}
