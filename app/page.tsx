@@ -76,6 +76,7 @@ const T = {
 
 type Lang = keyof typeof T;
 type Ride = {
+  user_id: any;
   id: string; from_city: string; to_city: string;
   price_per_seat: number; seats_total: number; seats_available: number;
   phone: string; vehicle_type: string; departure_time: string;
@@ -538,6 +539,28 @@ useEffect(() => {
                           <button onClick={() => setBookRide(r)}
                             className="rounded-xl bg-violet-600 px-4 py-2 text-xs font-bold text-white hover:bg-violet-700 transition shadow-sm shadow-violet-200">
                             ✓ {t.book}
+                          </button>
+                        )}
+                        {user && r.user_id === user.id && (
+                          <button
+                            onClick={async () => {
+                              if (!confirm("Delete this ride?")) return;
+                            
+                              const { error } = await supabase
+                                .from("rides")
+                                .delete()
+                                .eq("id", r.id);
+                            
+                              if (error) {
+                                console.error(error);
+                                alert("Failed to delete ride");
+                              } else {
+                                load(); // reload rides
+                              }
+                            }}
+                            className="rounded-xl bg-red-500 px-3 py-2 text-xs font-bold text-white hover:bg-red-600 transition"
+                          >
+                            Delete
                           </button>
                         )}
                       </div>
