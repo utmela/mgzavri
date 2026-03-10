@@ -85,68 +85,85 @@ export default function MyRides() {
     );
   }
 
-  return (
-    <div className="mx-auto max-w-5xl p-6">
-      <h1 className="text-3xl font-black mb-6 text-white-900">
+ return (
+  <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+
+    <div className="mb-8">
+      <h1 className="text-4xl font-black tracking-tight text-gray-900">
         My Rides
       </h1>
+      <p className="text-gray-500 mt-1">
+        Manage your posted trips and passengers.
+      </p>
+    </div>
 
-      {rides.length === 0 && (
-        <div className="text-gray-700 font-medium">
+    {rides.length === 0 && (
+      <div className="rounded-3xl border border-dashed border-gray-200 bg-white py-20 text-center">
+        <div className="text-5xl mb-3">🚐</div>
+        <p className="text-lg font-black text-gray-700">
           You haven't posted any rides yet.
-        </div>
-      )}
+        </p>
+      </div>
+    )}
 
-      <div className="space-y-6">
-        {rides.map((ride) => (
-          <div
-            key={ride.id}
-            className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"
-          >
-            <h2 className="text-xl font-black text-gray-900">
+    <div className="space-y-6">
+      {rides.map((ride) => (
+        <div
+          key={ride.id}
+          className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm"
+        >
+
+          {/* HEADER */}
+          <div className="bg-gradient-to-r from-violet-600 to-purple-600 px-6 py-4 text-white">
+            <h2 className="text-lg font-black">
               {ride.from_city} → {ride.to_city}
             </h2>
+          </div>
 
-            <p className="text-sm text-gray-700 mt-1">
-              🚐 {ride.vehicle_type}
-            </p>
+          {/* BODY */}
+          <div className="p-6">
 
-            <p className="text-sm text-gray-700">
-              🕐 {new Date(ride.departure_time).toLocaleString()}
-            </p>
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
 
-            <p className="text-sm mt-2 text-gray-800">
-              Seats left: <b>{ride.seats_available}</b>
-            </p>
+              <div className="space-y-1 text-sm text-gray-600">
+                <p>🚐 {ride.vehicle_type}</p>
+                <p>🕐 {new Date(ride.departure_time).toLocaleString()}</p>
+                <p>
+                  Seats left: <b className="text-gray-900">{ride.seats_available}</b>
+                </p>
+                <p>
+                  Price: <b className="text-violet-700">{ride.price_per_seat}₾</b>
+                </p>
+              </div>
 
-            <p className="text-sm text-gray-800">
-              Price: <b>{ride.price_per_seat}₾</b>
-            </p>
+              {/* ACTION BUTTONS */}
+              <div className="flex gap-3">
 
-            {/* EDIT + DELETE BUTTONS */}
-            <div className="flex gap-3 mt-4">
-              <Link
-                href={`/edit-ride/${ride.id}`}
-                className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700 transition"
-              >
-                Edit
-              </Link>
+                <Link
+                  href={`/edit-ride/${ride.id}`}
+                  className="rounded-xl bg-violet-600 px-4 py-2 text-sm font-bold text-white hover:bg-violet-700 transition"
+                >
+                  Edit
+                </Link>
 
-              <button
-                onClick={() => deleteRide(ride.id)}
-                className="rounded-xl bg-red-500 px-4 py-2 text-sm font-bold text-white hover:bg-red-600 transition"
-              >
-                Delete
-              </button>
+                <button
+                  onClick={() => deleteRide(ride.id)}
+                  className="rounded-xl bg-red-500 px-4 py-2 text-sm font-bold text-white hover:bg-red-600 transition"
+                >
+                  Delete
+                </button>
+
+              </div>
             </div>
 
-            <div className="mt-5">
-              <h3 className="font-bold text-gray-800 mb-2">
+            {/* PASSENGERS */}
+            <div className="mt-4">
+              <h3 className="text-sm font-black uppercase tracking-wide text-gray-500 mb-3">
                 Passengers
               </h3>
 
               {ride.bookings.length === 0 ? (
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-400">
                   No passengers yet.
                 </p>
               ) : (
@@ -154,18 +171,18 @@ export default function MyRides() {
                   {ride.bookings.map((b) => (
                     <div
                       key={b.id}
-                      className="flex items-center justify-between rounded-xl bg-gray-100 px-4 py-2"
+                      className="flex items-center justify-between rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3"
                     >
                       <div>
-                        <p className="font-semibold text-gray-900">
+                        <p className="font-bold text-gray-800">
                           {b.passenger_name}
                         </p>
-                        <p className="text-xs text-gray-600">
+                        <p className="text-xs text-gray-500">
                           📞 {b.phone}
                         </p>
                       </div>
 
-                      <div className="text-sm font-bold text-violet-700">
+                      <div className="text-sm font-black text-violet-700">
                         {b.seats_booked} seats
                       </div>
                     </div>
@@ -173,9 +190,11 @@ export default function MyRides() {
                 </div>
               )}
             </div>
+
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
     </div>
-  );
+  </div>
+);
 }
