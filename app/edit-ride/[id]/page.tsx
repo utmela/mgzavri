@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
+import { useLanguage } from "../../../components/LanguageProvider";
 
 const T = {
   en: {
@@ -31,8 +32,8 @@ export default function EditRide() {
   const router = useRouter();
   const params = useParams();
 
-  const [lang, setLang] = useState<"en" | "ka">("ka");
-  const t = T[lang];
+  const { lang } = useLanguage();
+  const t = T[lang as "en" | "ka"];
 
   const [vehicle, setVehicle] = useState("");
   const [seats, setSeats] = useState(1);
@@ -76,22 +77,6 @@ export default function EditRide() {
     <div className="min-h-screen bg-gray-50">
 
       <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
-
-        {/* HEADER */}
-        <div className="mb-10 flex items-center justify-between">
-
-          <h1 className="text-4xl font-black text-gray-900">
-            {t.title}
-          </h1>
-
-          <button
-            onClick={() => setLang((l) => (l === "en" ? "ka" : "en"))}
-            className="rounded-xl border border-violet-200 bg-white px-3 py-1.5 text-xs font-bold text-violet-600 hover:bg-violet-50 transition"
-          >
-            {lang === "en" ? "🇬🇪 KA" : "🇬🇧 EN"}
-          </button>
-
-        </div>
 
         {/* CARD */}
         <div className="rounded-3xl border border-gray-200 bg-white shadow-sm p-8 space-y-6">

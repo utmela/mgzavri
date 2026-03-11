@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "../../lib/supabase";
 import CustomSelect from "../../components/CustomSelect";
+import { useLanguage } from "../../components/LanguageProvider";
 
 const CITIES = [
   { en: "Tbilisi",   ka: "თბილისი" },
@@ -66,7 +67,7 @@ type Lang = keyof typeof T;
 
 export default function PostRequest() {
   const router = useRouter();
-  const [lang, setLang]           = useState<Lang>("ka");
+  const { lang } = useLanguage();
   const [user, setUser]           = useState<any>(null);
   const [fromCity, setFromCity]   = useState("");
   const [toCity, setToCity]       = useState("");
@@ -78,7 +79,7 @@ export default function PostRequest() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess]     = useState(false);
   const [error, setError]         = useState("");
-  const t = T[lang];
+  const t = T[lang as "en" | "ka"];
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
@@ -118,30 +119,6 @@ export default function PostRequest() {
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
-
-      {/* NAV */}
-      <nav className="sticky top-0 z-50 border-b-2 border-violet-100 bg-white/95 backdrop-blur-md shadow-sm">
-        <div className="mx-auto flex h-16 max-w-2xl items-center justify-between px-4 sm:px-6">
-          <Link href="/">
-            <img src="/logo.png" alt="mgzavri.ge" className="h-20 w-auto" />
-          </Link>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setLang(l => l === "en" ? "ka" : "en")}
-              className="inline-flex items-center h-9 gap-1.5 rounded-xl border-2 border-violet-200 bg-white px-3 text-xs font-black text-violet-700 hover:bg-violet-50 transition">
-              {lang === "en" ? (
-                <><img src="https://flagcdn.com/w20/ge.png" alt="GE" className="h-4 w-auto rounded-sm" /><span>KA</span></>
-              ) : (
-                <><img src="https://flagcdn.com/w20/gb.png" alt="GB" className="h-4 w-auto rounded-sm" /><span>EN</span></>
-              )}
-            </button>
-            {!user && (
-              <Link href="/auth" className="inline-flex items-center h-9 rounded-xl bg-violet-600 px-4 text-sm font-black text-white hover:bg-violet-700 transition">
-                {t.signIn}
-              </Link>
-            )}
-          </div>
-        </div>
-      </nav>
 
       <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
 
