@@ -8,6 +8,7 @@ import BookModal from "../components/BookModal";
 import GeorgianPlate from "../components/GeorgianPlate";
 import CustomSelect from "../components/CustomSelect";
 import { useIsAdmin } from "../lib/uselsAdmin";
+import { useLanguage } from "../components/LanguageProvider";
 
 const CITIES = [
   { en: "Tbilisi",   ka: "თბილისი",   img: "/cities/tbilisi.jpg" },
@@ -366,7 +367,7 @@ function RequestCard({ req, lang, t, user, isAdmin, onDelete }: {
 export default function Home() {
   const router = useRouter();
   const { isAdmin } = useIsAdmin();
-  const [lang, setLang]           = useState<Lang>("ka");
+  const { lang } = useLanguage() as { lang: Lang };
   const [role, setRole]           = useState<Role>("passenger");
   const [user, setUser]           = useState<any>(null);
   const [rides, setRides]         = useState<Ride[]>([]);
@@ -376,7 +377,6 @@ export default function Home() {
   const [toCity, setToCity]       = useState("");
   const [sortMode, setSortMode]   = useState("time");
   const [bookRide, setBookRide]   = useState<Ride | null>(null);
-  const [menuOpen, setMenuOpen]   = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const t = T[lang];
 
@@ -442,11 +442,7 @@ export default function Home() {
   // Reload when role changes
   useEffect(() => { load(); }, [role]);
 
-  useEffect(() => {
-    const close = () => setMenuOpen(false);
-    window.addEventListener("click", close);
-    return () => window.removeEventListener("click", close);
-  }, []);
+
 
   const totalSeats    = rides.reduce((s, r) => s + r.seats_available, 0);
   const coveredCities = new Set(rides.map(r => r.to_city)).size;
@@ -458,54 +454,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen font-sans bg-gray-50">
-
-      {/* ── NAV ── */}
-      <nav className="sticky top-0 z-50 border-b-2 border-violet-100 bg-white/95 backdrop-blur-md shadow-sm">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-          <Link href="/">
-            <img src="/logo.png" alt="mgzavri.ge" className="h-20 w-auto" />
-          </Link>
-          <div className="flex items-center gap-2">
-            {isAdmin && (
-              <Link href="/admin" className="inline-flex items-center h-9 rounded-xl border-2 border-amber-400 bg-amber-50 px-3 text-xs font-black text-amber-700 hover:bg-amber-100 transition">
-                🛡 {t.admin}
-              </Link>
-            )}
-            <button onClick={() => setLang(l => l === "en" ? "ka" : "en")}
-              className="inline-flex items-center h-9 gap-1.5 rounded-xl border-2 border-violet-200 bg-white px-3 text-xs font-black text-violet-700 hover:bg-violet-50 transition">
-              {lang === "en" ? (
-                <><img src="https://flagcdn.com/w20/ge.png" alt="GE" className="h-4 w-auto rounded-sm" /><span>KA</span></>
-              ) : (
-                <><img src="https://flagcdn.com/w20/gb.png" alt="GB" className="h-4 w-auto rounded-sm" /><span>EN</span></>
-              )}
-            </button>
-            {!user ? (
-              <>
-                <Link href="/auth" className="inline-flex items-center h-9 rounded-xl border-2 border-gray-200 bg-white px-4 text-sm font-black text-gray-700 hover:bg-gray-50 transition">{t.signIn}</Link>
-                <Link href="/auth?mode=signup" className="inline-flex items-center h-9 rounded-xl bg-violet-600 px-4 text-sm font-black text-white hover:bg-violet-700 transition shadow-md shadow-violet-200">{t.signUp}</Link>
-              </>
-            ) : (
-              <div className="relative">
-                <button onClick={e => { e.stopPropagation(); setMenuOpen(!menuOpen); }}
-                  className="inline-flex items-center h-9 gap-2 rounded-xl border-2 border-gray-200 bg-white px-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-violet-600 text-white text-xs font-black">
-                    {user.email?.[0]?.toUpperCase()}
-                  </div>
-                  <span className="text-gray-400 text-xs">▾</span>
-                </button>
-                {menuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 rounded-2xl border-2 border-gray-100 bg-white shadow-xl overflow-hidden z-50">
-                    <Link href="/my-bookings" className="flex items-center gap-2 px-4 py-3 text-sm font-black text-gray-700 hover:bg-gray-50">📖 {t.myBookings}</Link>
-                    <Link href="/my-rides"    className="flex items-center gap-2 px-4 py-3 text-sm font-black text-gray-700 hover:bg-gray-50">🚐 {t.myRides}</Link>
-                    {isAdmin && <Link href="/admin" className="flex items-center gap-2 px-4 py-3 text-sm font-black text-amber-700 hover:bg-amber-50">🛡 {t.admin}</Link>}
-                    <button onClick={logout} className="w-full flex items-center gap-2 px-4 py-3 text-sm font-black text-red-600 hover:bg-red-50">🚪 {t.logout}</button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </nav>
 
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
 
