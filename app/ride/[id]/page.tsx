@@ -122,22 +122,6 @@ export default function RidePage() {
   return (
     <div className="min-h-screen font-sans bg-gray-50">
 
-      {/* NAV */}
-      <nav style={{ background: "rgba(255,255,255,0.96)", backdropFilter: "blur(20px)" }}
-        className="sticky top-0 z-50 border-b border-gray-200 shadow-sm">
-        <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-4 sm:px-6">
-          <a href="/" className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-600 text-xl shadow-lg shadow-violet-200">🚐</div>
-            <span className="text-xl font-black text-gray-900 tracking-tight">mgzavri</span>
-          </a>
-          <button onClick={() => setLang((l) => l === "en" ? "ka" : "en")}
-            className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-bold text-gray-600 hover:bg-gray-100 transition">
-            <span>{lang === "en" ? "🇬🇪" : "🇬🇧"}</span>
-            <span>{lang === "en" ? "KA" : "EN"}</span>
-          </button>
-        </div>
-      </nav>
-
       <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 space-y-4">
 
         <button onClick={() => router.back()}
