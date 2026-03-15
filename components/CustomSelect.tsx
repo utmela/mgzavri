@@ -14,22 +14,38 @@ interface Props {
   options: Option[];
   placeholder?: string;
   className?: string;
+  searchable?: boolean; // default true
 }
 
-export default function CustomSelect({ value, onChange, options, placeholder = "Choose…", className = "" }: Props) {
-  const [open, setOpen] = useState(false);
-  const [rect, setRect] = useState<DOMRect | null>(null);
-  const btnRef = useRef<HTMLButtonElement>(null);
+export default function CustomSelect({
+  value, onChange, options,
+  placeholder = "Choose…", className = "", searchable = true,
+}: Props) {
+  const [open, setOpen]       = useState(false);
+  const [query, setQuery]     = useState("");
+  const [rect, setRect]       = useState<DOMRect | null>(null);
+  const btnRef  = useRef<HTMLButtonElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
 
   const selected = options.find(o => o.value === value);
+
+  const filtered = query.trim()
+    ? options.filter(o => o.label.toLowerCase().includes(query.toLowerCase()))
+    : options;
 
   const updateRect = useCallback(() => {
     if (btnRef.current) setRect(btnRef.current.getBoundingClientRect());
   }, []);
 
   useEffect(() => {
-    if (open) updateRect();
+    if (open) {
+      updateRect();
+      // focus search input after portal renders
+      setTimeout(() => inputRef.current?.focus(), 30);
+    } else {
+      setQuery("");
+    }
   }, [open, updateRect]);
 
   useEffect(() => {
@@ -55,21 +71,48 @@ export default function CustomSelect({ value, onChange, options, placeholder = "
         position: "fixed",
         top: rect.bottom + 8,
         left: rect.left,
-        width: rect.width,
+        width: Math.max(rect.width, 200),
         zIndex: 9999,
-        maxHeight: 280,
       }}
       className="rounded-2xl border border-gray-200 bg-white shadow-xl overflow-hidden"
     >
-      <div className="overflow-y-auto" style={{ maxHeight: 280 }}>
-        {placeholder && (
+      {/* Search input */}
+      {searchable && (
+        <div className="px-3 pt-3 pb-2 border-b border-gray-100">
+          <div className="flex items-center gap-2 rounded-xl bg-gray-50 border border-gray-200 px-3 py-2 focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-100 transition">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Search…"
+              className="flex-1 bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none min-w-0"
+            />
+            {query && (
+              <button type="button" onClick={() => setQuery("")} className="text-gray-400 hover:text-gray-600 transition leading-none">
+                ×
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="overflow-y-auto" style={{ maxHeight: 240 }}>
+        {/* Clear / placeholder option */}
+        {placeholder && !query && (
           <button type="button" onClick={() => { onChange(""); setOpen(false); }}
             className={`w-full px-4 py-2.5 text-left text-sm transition
               ${!value ? "bg-violet-50 text-violet-700 font-bold" : "text-gray-400 hover:bg-gray-50"}`}>
             {placeholder}
           </button>
         )}
-        {options.map(opt => (
+
+        {filtered.length === 0 ? (
+          <p className="px-4 py-3 text-sm text-gray-400 text-center">No results</p>
+        ) : filtered.map(opt => (
           <button
             key={opt.value}
             type="button"

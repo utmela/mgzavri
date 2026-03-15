@@ -1,316 +1,193 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
 import { useLanguage } from "./LanguageProvider";
+import {
+  IconShield, IconBookmark, IconBus, IconLogout,
+  IconChevronDown, IconUser, IconLogin,
+} from "@tabler/icons-react";
 
 const T = {
   en: {
-    signIn: "Sign in",
-    signUp: "Sign up",
-    logout: "Logout",
-    myBookings: "My bookings",
-    myRides: "My rides",
-    admin: "Admin panel"
+    myBookings: "My bookings", myRides: "My rides",
+    admin: "Admin panel", logout: "Logout", signIn: "Sign in",
   },
   ka: {
-    signIn: "შესვლა",
-    signUp: "რეგისტრაცია",
-    logout: "გასვლა",
-    myBookings: "ჩემი ჯავშნები",
-    myRides: "ჩემი მგზავრობები",
-    admin: "ადმინის პანელი"
-  }
+    myBookings: "ჩემი ჯავშნები", myRides: "ჩემი მოგზაურობები",
+    admin: "ადმინ პანელი", logout: "გასვლა", signIn: "შესვლა",
+  },
 };
 
+// Tiny Georgia flag SVG inline
+function Flag({ code }: { code: "ge" | "gb" }) {
+  return (
+    <img
+      src={`https://cdn.jsdelivr.net/gh/lipis/flag-icons@7.2.3/flags/4x3/${code}.svg`}
+      alt={code}
+      width={22}
+      height={15}
+      className="shrink-0 rounded-[2px]"
+      style={{ border: "0.5px solid #e5e7eb", display: "block" }}
+    />
+  );
+}
+
+const ADMIN_IDS = [
+  "5d249be0-a9a5-43da-a4fd-b43f75fe09b0",
+  "110e686c-d3b4-4060-b72e-ffd0c6cc9727",
+];
+
 export default function Navbar() {
+  const router = useRouter();
+  const { lang, setLang } = useLanguage() as { lang: "en" | "ka"; setLang: (l: "en" | "ka") => void };
+  const t = T[lang];
 
-  const { lang, changeLang } = useLanguage();   // ⭐ global language
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [user, setUser] = useState<any>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [user,    setUser]    = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [open,    setOpen]    = useState(false);
+  const dropRef               = useRef<HTMLDivElement>(null);
 
-  const t = T[lang as "en" | "ka"];
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user);
+      setIsAdmin(!!data.user && ADMIN_IDS.includes(data.user.id));
+    });
+  }, []);
 
-  const ADMIN_IDS = [
-    "5d249be0-a9a5-43da-a4fd-b43f75fe09b0",
-    "110e686c-d3b4-4060-b72e-ffd0c6cc9727",
-  ];
-
-  const isAdmin = user && ADMIN_IDS.includes(user.id);
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (dropRef.current && !dropRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   async function logout() {
     await supabase.auth.signOut();
-    location.reload();
+    setUser(null);
+    setOpen(false);
+    router.push("/");
   }
 
-  useEffect(() => {
-
-  async function getUser() {
-    const { data } = await supabase.auth.getUser();
-    setUser(data.user);
-  }
-
-  getUser();
-
-  const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-    setUser(session?.user ?? null);
-  });
-
-  return () => {
-    listener.subscription.unsubscribe();
-  };
-
-}, []);
-
-  useEffect(() => {
-
-  async function getUser() {
-    const { data } = await supabase.auth.getUser();
-    setUser(data.user);
-  }
-
-  getUser();
-
-  const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-    setUser(session?.user ?? null);
-  });
-
-  return () => {
-    listener.subscription.unsubscribe();
-  };
-
-}, []);
-  useEffect(() => {
-
-  async function getUser() {
-    const { data } = await supabase.auth.getUser();
-    setUser(data.user);
-  }
-
-  getUser();
-
-  const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-    setUser(session?.user ?? null);
-  });
-
-  return () => {
-    listener.subscription.unsubscribe();
-  };
-
-}, []);
-  useEffect(() => {
-
-  async function getUser() {
-    const { data } = await supabase.auth.getUser();
-    setUser(data.user);
-  }
-
-  getUser();
-
-  const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-    setUser(session?.user ?? null);
-  });
-
-  return () => {
-    listener.subscription.unsubscribe();
-  };
-
-}, []);
-  useEffect(() => {
-
-  async function getUser() {
-    const { data } = await supabase.auth.getUser();
-    setUser(data.user);
-  }
-
-  getUser();
-
-  const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-    setUser(session?.user ?? null);
-  });
-
-  return () => {
-    listener.subscription.unsubscribe();
-  };
-
-}, []);
-
-  useEffect(() => {
-
-  async function getUser() {
-    const { data } = await supabase.auth.getUser();
-    setUser(data.user);
-  }
-
-  getUser();
-
-  const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-    setUser(session?.user ?? null);
-  });
-
-  return () => {
-    listener.subscription.unsubscribe();
-  };
-
-}, []);
-  useEffect(() => {
-
-  async function getUser() {
-    const { data } = await supabase.auth.getUser();
-    setUser(data.user);
-  }
-
-  getUser();
-
-  const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-    setUser(session?.user ?? null);
-  });
-
-  return () => {
-    listener.subscription.unsubscribe();
-  };
-
-}, []);
-
-  useEffect(() => {
-  function handleClickOutside(event: MouseEvent) {
-    if (
-      dropdownRef.current &&
-      !dropdownRef.current.contains(event.target as Node)
-    ) {
-      setMenuOpen(false);
-    }
-  }
-
-  document.addEventListener("mousedown", handleClickOutside);
-
-  return () => {
-    document.removeEventListener("mousedown", handleClickOutside);
-  };
-}, []);
+  // User initials avatar
+  const initials = user?.email?.[0]?.toUpperCase() ?? "?";
 
   return (
-    <nav className="sticky top-0 z-50 border-b-2 border-violet-100 bg-white/95 backdrop-blur-md shadow-sm">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
+    <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/95 backdrop-blur-sm">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
 
-        {/* LOGO */}
-        <Link href="/">
-          <img
-            src="/logo.png"
-            alt="mgzavri.ge"
-            className="h-10 w-auto object-contain"
-          />
+        {/* Logo */}
+        <Link href="/" className="shrink-0">
+          <img src="/logo.png" alt="mgzavri.ge" className="h-12 w-auto" />
         </Link>
 
+        {/* Centre nav links — only when logged in */}
+        {user && (
+          <nav className="hidden sm:flex items-center gap-1">
+            <Link href="/my-bookings"
+              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-black text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition">
+              <IconBookmark size={15} stroke={2.5} />
+              {t.myBookings}
+            </Link>
+            <Link href="/my-rides"
+              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-black text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition">
+              <IconBus size={15} stroke={2.5} />
+              {t.myRides}
+            </Link>
+            {isAdmin && (
+              <Link href="/admin"
+                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-black text-amber-600 hover:bg-amber-50 transition">
+                <IconShield size={15} stroke={2.5} />
+                {t.admin}
+              </Link>
+            )}
+          </nav>
+        )}
+
+        {/* Right side */}
         <div className="flex items-center gap-2">
 
-          {/* ADMIN */}
-          {isAdmin && (
-            <Link
-              href="/admin"
-              className="inline-flex items-center h-9 rounded-xl border-2 border-amber-400 bg-amber-50 px-3 text-xs font-black text-amber-700 hover:bg-amber-100 transition"
-            >
-              🛡 {t.admin}
-            </Link>
-          )}
-
-          {/* LANGUAGE */}
+          {/* Language toggle */}
           <button
-            onClick={() => changeLang(lang === "en" ? "ka" : "en")}
-            className="inline-flex items-center h-9 gap-1.5 rounded-xl border-2 border-violet-200 bg-white px-3 text-xs font-black text-violet-700 hover:bg-violet-50 transition"
-          >
-            {lang === "en" ? (
-              <>
-                <img src="https://flagcdn.com/w20/ge.png" className="h-4 rounded-sm"/>
-                <span>KA</span>
-              </>
-            ) : (
-              <>
-                <img src="https://flagcdn.com/w20/gb.png" className="h-4 rounded-sm"/>
-                <span>EN</span>
-              </>
-            )}
+            onClick={() => setLang(lang === "en" ? "ka" : "en")}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-black text-gray-700 hover:bg-gray-50 transition shrink-0">
+            {lang === "en" ? <Flag code="gb" /> : <Flag code="ge" />}
+            {lang.toUpperCase()}
           </button>
 
-          {/* NOT LOGGED IN */}
+          {/* Auth */}
           {!user ? (
-            <>
-              <Link
-                href="/auth"
-                className="inline-flex items-center h-9 rounded-xl border-2 border-gray-200 bg-white px-4 text-sm font-black text-gray-700 hover:bg-gray-50 transition"
-              >
-                {t.signIn}
-              </Link>
-
-              <Link
-                href="/auth?mode=signup"
-                className="inline-flex items-center h-9 rounded-xl bg-violet-600 px-4 text-sm font-black text-white hover:bg-violet-700 transition shadow-md shadow-violet-200"
-              >
-                {t.signUp}
-              </Link>
-            </>
+            <Link href="/auth"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-4 py-2 text-sm font-black text-white hover:bg-violet-700 transition">
+              <IconLogin size={15} stroke={2.5} />
+              {t.signIn}
+            </Link>
           ) : (
-
-            
-            <div ref={dropdownRef} className="relative">
-
+            <div className="relative" ref={dropRef}>
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setMenuOpen(!menuOpen);
-                }}
-                className="inline-flex items-center h-9 gap-2 rounded-xl border-2 border-gray-200 bg-white px-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
-              >
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-violet-600 text-white text-xs font-black">
-                  {user?.email?.[0]?.toUpperCase()}
+                onClick={() => setOpen(o => !o)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-sm font-black text-gray-700 hover:bg-gray-50 transition">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-violet-600 text-xs font-black text-white">
+                  {initials}
                 </div>
-
-                <span className="text-gray-400 text-xs">▾</span>
+                <IconChevronDown size={14} stroke={2.5} className={`transition-transform ${open ? "rotate-180" : ""}`} />
               </button>
 
-              {menuOpen && (
-                <div className="absolute right-0 mt-2 w-56 rounded-2xl border-2 border-gray-100 bg-white shadow-xl overflow-hidden z-50">
+              {open && (
+                <div className="absolute right-0 mt-2 w-52 rounded-2xl border border-gray-200 bg-white shadow-xl overflow-hidden z-50">
+                  {/* User info header */}
+                  <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
+                    <p className="text-xs font-black text-gray-900 truncate">{user.email}</p>
+                  </div>
 
-                  <Link
-                    href="/my-bookings"
-                    className="flex items-center gap-2 px-4 py-3 text-sm font-black text-gray-700 hover:bg-gray-50"
-                  >
-                    📖 {t.myBookings}
-                  </Link>
-
-                  <Link
-                    href="/my-rides"
-                    className="flex items-center gap-2 px-4 py-3 text-sm font-black text-gray-700 hover:bg-gray-50"
-                  >
-                    🚐 {t.myRides}
-                  </Link>
-
-                  {isAdmin && (
-                    <Link
-                      href="/admin"
-                      className="flex items-center gap-2 px-4 py-3 text-sm font-black text-amber-700 hover:bg-amber-50"
-                    >
-                      🛡 {t.admin}
+                  {/* Mobile-only nav links */}
+                  <div className="sm:hidden border-b border-gray-100">
+                    <Link href="/my-bookings" onClick={() => setOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-3 text-sm font-black text-gray-700 hover:bg-gray-50 transition">
+                      <IconBookmark size={16} stroke={2.5} className="text-violet-500" />
+                      {t.myBookings}
                     </Link>
+                    <Link href="/my-rides" onClick={() => setOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-3 text-sm font-black text-gray-700 hover:bg-gray-50 transition">
+                      <IconBus size={16} stroke={2.5} className="text-violet-500" />
+                      {t.myRides}
+                    </Link>
+                    {isAdmin && (
+                      <Link href="/admin" onClick={() => setOpen(false)}
+                        className="flex items-center gap-2.5 px-4 py-3 text-sm font-black text-amber-600 hover:bg-amber-50 transition">
+                        <IconShield size={16} stroke={2.5} />
+                        {t.admin}
+                      </Link>
+                    )}
+                  </div>
+
+                  {/* Desktop-only admin link in dropdown */}
+                  {isAdmin && (
+                    <div className="hidden sm:block border-b border-gray-100">
+                      <Link href="/admin" onClick={() => setOpen(false)}
+                        className="flex items-center gap-2.5 px-4 py-3 text-sm font-black text-amber-600 hover:bg-amber-50 transition">
+                        <IconShield size={16} stroke={2.5} />
+                        {t.admin}
+                      </Link>
+                    </div>
                   )}
 
-                  <button
-                    onClick={logout}
-                    className="w-full flex items-center gap-2 px-4 py-3 text-sm font-black text-red-600 hover:bg-red-50"
-                  >
-                    🚪 {t.logout}
+                  {/* Logout */}
+                  <button onClick={logout}
+                    className="flex w-full items-center gap-2.5 px-4 py-3 text-sm font-black text-red-600 hover:bg-red-50 transition">
+                    <IconLogout size={16} stroke={2.5} />
+                    {t.logout}
                   </button>
-
                 </div>
               )}
-
             </div>
           )}
-
         </div>
       </div>
-    </nav>
+    </header>
   );
 }
