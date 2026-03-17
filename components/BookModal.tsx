@@ -74,17 +74,18 @@ export default function BookModal({ ride, lang, onClose }: Props) {
     }
 
     // 2. Insert booking
-    const { error: bookErr } = await supabase
-      .from("bookings")
-      .insert([
-        {
-          ride_id: ride.id,
-          passenger_name: name.trim(),
-          phone: phone.trim(),
-          seats_booked: seats,
-          user_id: userData.user?.id,
-        },
-      ]);
+const { error: bookErr } = await supabase
+  .from("bookings")
+  .insert([
+    {
+      ride_id: ride.id,
+      passenger_name: name.trim(),
+      seats_booked: seats,
+      total_price: ride.price_per_seat * seats,
+      payment_status: "pending",
+      user_id: userData.user?.id,  // ← add this
+    },
+  ]);
 
     if (bookErr) {
       console.error("BOOKING ERR:", bookErr);

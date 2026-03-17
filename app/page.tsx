@@ -457,8 +457,9 @@ export default function Home() {
 
   async function handleDeleteRequest(id: string) {
     if (!confirm(t.deleteConfirm)) return;
-    await supabase.from("requests").delete().eq("id", id);
-    await loadRequests();
+    const { error } = await supabase.from("requests").delete().eq("id", id);
+    if (error) { alert("Delete failed: " + error.message); return; }
+    setRequests(prev => prev.filter(r => r.id !== id));
   }
 
   function canDelete(r: Ride) { return user && (isAdmin || r.user_id === user.id); }
