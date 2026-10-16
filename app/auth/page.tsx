@@ -2,9 +2,12 @@
 
 import { useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { api } from "../../lib/api";
+import { safeReturnTo } from "../../lib/auth-redirect";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useLanguage } from "../../components/LanguageProvider";
+import RoutePhotoBanner from "../../components/RoutePhotoBanner";
 import {
   IconArrowLeft, IconBus, IconMail, IconLock, IconUser,
   IconPhone, IconCircleCheck, IconAlertCircle, IconLoader2,
@@ -17,8 +20,10 @@ const T = {
     signIn: "Sign in", signUp: "Create account", loading: "Loading…",
     noAccount: "Don't have an account? Sign up",
     haveAccount: "Already have an account? Sign in",
-    created: "Account created! You can now sign in.",
+    created: "Check your email to confirm your account before signing in.",
     or: "or", continueGoogle: "Continue with Google",
+    passengerAccount: "New accounts start as Passenger",
+    driverApproval: "Driver tools are enabled only after Mgzavri approval.",
   },
   ka: {
     back: "მთავარ გვერდზე დაბრუნება", welcome: "კეთილი დაბრუნება", create: "ანგარიშის შექმნა",
@@ -26,8 +31,10 @@ const T = {
     signIn: "შესვლა", signUp: "რეგისტრაცია", loading: "იტვირთება…",
     noAccount: "ანგარიში არ გაქვთ? დარეგისტრირდით",
     haveAccount: "უკვე გაქვთ ანგარიში? შედით",
-    created: "ანგარიში შეიქმნა! ახლა შეგიძლიათ შესვლა.",
+    created: "შესვლამდე შეამოწმეთ ელფოსტა და დაადასტურეთ ანგარიში.",
     or: "ან", continueGoogle: "Google-ით შესვლა",
+    passengerAccount: "ახალი ანგარიში იქმნება როგორც მგზავრი",
+    driverApproval: "მძღოლის ხელსაწყოები ჩაირთვება მხოლოდ Mgzavri-ს დადასტურების შემდეგ.",
   },
 };
 
@@ -50,7 +57,7 @@ export default function AuthPage() {
     setGoogleLoading(true);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/` },
+      options: { redirectTo: `${window.location.origin}/auth/complete` },
     });
     if (error) { setMessage(error.message); setMsgType("err"); setGoogleLoading(false); }
   }
@@ -60,25 +67,41 @@ export default function AuthPage() {
     if (isLogin) {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) { setMessage(error.message); setMsgType("err"); }
-      else { router.push("/"); router.refresh(); }
+      else {
+        const next = safeReturnTo(new URLSearchParams(window.location.search).get("next"));
+        const [assurance, profile] = await Promise.all([supabase.auth.mfa.getAuthenticatorAssuranceLevel(), api<{ role: string }>("/profile")]);
+        router.push(assurance.data?.nextLevel === "aal2" || profile.data?.role === "admin" ? `/security?next=${encodeURIComponent(profile.data?.role === "admin" ? "/admin" : next)}` : next);
+        router.refresh();
+      }
     } else {
       if (!name || !phone || !email || !password) {
         setMessage("Please fill all fields"); setMsgType("err"); setLoading(false); return;
       }
-      const { data, error } = await supabase.auth.signUp({ email, password });
+      if (password.length < 12) { setMessage(lang === "ka" ? "პაროლი უნდა შეიცავდეს მინიმუმ 12 სიმბოლოს." : "Use a password with at least 12 characters."); setMsgType("err"); setLoading(false); return; }
+      const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: `${window.location.origin}/auth/complete`, data: { name: name.trim(), phone: phone.trim() } } });
       if (error) { setMessage(error.message); setMsgType("err"); setLoading(false); return; }
-      if (data.user) {
-        await supabase.from("profiles").update({ name, phone }).eq("id", data.user.id);
-      }
       setMessage(t.created); setMsgType("ok"); setIsLogin(true);
     }
     setLoading(false);
   }
 
+  async function sendAccountEmail(kind: "recovery" | "verification") {
+    if (!email.trim()) { setMessage(lang === "ka" ? "შეიყვანეთ ელფოსტა." : "Enter your email address first."); setMsgType("err"); return; }
+    setLoading(true);
+    try {
+      const result = kind === "recovery"
+        ? await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/auth/reset-password` })
+        : await supabase.auth.resend({ type: "signup", email: email.trim(), options: { emailRedirectTo: `${window.location.origin}/auth/complete` } });
+      if (result.error && result.error.status === 429) throw result.error;
+      setMessage(lang === "ka" ? "თუ ანგარიში შესაბამისია, ელფოსტაზე მიიღებთ ბმულს. შეამოწმეთ სპამის საქაღალდეც." : "If the account is eligible, an email will arrive with the next step. Check your spam folder too."); setMsgType("ok");
+    } catch { setMessage(lang === "ka" ? "ცოტა ხანში სცადეთ ხელახლა." : "Please wait before trying again."); setMsgType("err"); }
+    finally { setLoading(false); }
+  }
+
   const inp = "h-12 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 text-sm font-extrabold text-gray-800 outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100 transition placeholder-gray-400";
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans flex items-center justify-center px-4 py-12">
+    <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top_left,_#ede9fe_0,_#f8fafc_40%,_#f8fafc_100%)] px-4 py-12 font-sans">
       <div className="w-full max-w-md">
 
         {/* Back link */}
@@ -89,12 +112,14 @@ export default function AuthPage() {
           </Link>
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <div className="group overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-2xl shadow-violet-950/10">
+
+          <RoutePhotoBanner from="Tbilisi" to="Batumi" lang={lang} compact />
 
           {/* Header */}
-          <div className="bg-gradient-to-br from-[#1a1035] via-[#2d1f6e] to-[#1a1035] px-6 py-10 text-center">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 border border-white/20">
-              <IconBus size={28} stroke={1.5} className="text-white" />
+          <div className="bg-gradient-to-br from-[#1a1035] via-[#2d1f6e] to-[#1a1035] px-6 py-6 text-center">
+            <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-xl border border-white/20 bg-white/10">
+              <IconBus size={23} stroke={1.5} className="text-white" />
             </div>
             <h1 className="text-2xl font-black text-white">{isLogin ? t.welcome : t.create}</h1>
             <p className="mt-1 text-sm font-bold text-white/50">mgzavri.ge</p>
@@ -130,17 +155,21 @@ export default function AuthPage() {
             {/* Sign-up fields */}
             {!isLogin && (
               <>
+                <div className="rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3">
+                  <p className="text-sm font-black text-violet-900">{t.passengerAccount}</p>
+                  <p className="mt-1 text-xs font-bold leading-5 text-violet-700">{t.driverApproval}</p>
+                </div>
                 <div>
                   <label className="mb-1.5 flex items-center gap-1.5 text-xs font-black uppercase tracking-wide text-gray-400">
                     <IconUser size={11} stroke={2.5} /> {t.name}
                   </label>
-                  <input value={name} onChange={e => setName(e.target.value)} className={inp} />
+                  <input aria-label={t.name} autoComplete="name" maxLength={120} value={name} onChange={e => setName(e.target.value)} className={inp} />
                 </div>
                 <div>
                   <label className="mb-1.5 flex items-center gap-1.5 text-xs font-black uppercase tracking-wide text-gray-400">
                     <IconPhone size={11} stroke={2.5} /> {t.phone}
                   </label>
-                  <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="599 123 456" className={inp} />
+                  <input aria-label={t.phone} type="tel" autoComplete="tel" maxLength={32} value={phone} onChange={e => setPhone(e.target.value)} placeholder="599 123 456" className={inp} />
                 </div>
               </>
             )}
@@ -149,14 +178,14 @@ export default function AuthPage() {
               <label className="mb-1.5 flex items-center gap-1.5 text-xs font-black uppercase tracking-wide text-gray-400">
                 <IconMail size={11} stroke={2.5} /> {t.email}
               </label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} className={inp} />
+              <input aria-label={t.email} type="email" autoComplete="email" maxLength={254} value={email} onChange={e => setEmail(e.target.value)} className={inp} />
             </div>
 
             <div>
               <label className="mb-1.5 flex items-center gap-1.5 text-xs font-black uppercase tracking-wide text-gray-400">
                 <IconLock size={11} stroke={2.5} /> {t.password}
               </label>
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)} className={inp} />
+              <input aria-label={t.password} type="password" autoComplete={isLogin ? "current-password" : "new-password"} maxLength={128} value={password} onChange={e => setPassword(e.target.value)} className={inp} />
             </div>
 
             {/* Message */}
@@ -182,6 +211,7 @@ export default function AuthPage() {
               }
             </button>
 
+            <div className="flex flex-wrap justify-between gap-3 text-xs font-bold text-violet-700"><button type="button" disabled={loading} onClick={() => void sendAccountEmail("recovery")}>{lang === "ka" ? "დაგავიწყდათ პაროლი?" : "Forgot password?"}</button><button type="button" disabled={loading} onClick={() => void sendAccountEmail("verification")}>{lang === "ka" ? "დადასტურების წერილის გამეორება" : "Resend confirmation"}</button></div>
             {/* Toggle */}
             <button onClick={() => { setIsLogin(!isLogin); setMessage(""); }}
               className="w-full text-sm font-black text-violet-600 hover:text-violet-700 transition">

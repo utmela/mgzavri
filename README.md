@@ -1,36 +1,63 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Mgzavri
 
-## Getting Started
+Intercity minivan bookings for Georgia. Next.js App Router, React, TypeScript and Supabase PostgreSQL/Auth.
 
-First, run the development server:
+Server APIs handle trips, bookings, passenger requests, profiles and administration. See [backend architecture and verification](docs/BACKEND.md) for the endpoint contract and existing database upgrade applied on 2026-10-16. Passengers can manage their requests at `/my-requests`.
 
-```bash
+Read [security and operations](docs/OPERATIONS.md) for MFA, booking retry protection, quotas, Docker, backups, monitoring and the remaining production configuration gates. `npm run test:db:local` runs the database/concurrency/restore suite without Docker or a hosted database.
+
+## Local development
+
+Use Node.js 22.18+ and the checked-in package lock. Copy `.env.example` to `.env.local` and fill in the **staging** Supabase URL and public key. Never use production credentials in preview builds.
+
+```powershell
+npm ci
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000. The public Supabase key is intended for the browser; database permissions enforce access. Never put service-role keys or database passwords into `NEXT_PUBLIC_*` variables.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Release checks
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```powershell
+npm run check
+```
 
-## Learn More
+This runs lint, TypeScript, backend tests and a production build. With the app running, `npm run test:api` checks the real HTTP API without creating records. `.github/workflows/checks.yml` also defines an isolated PostgreSQL migration/security test job. CI jobs do not access production.
 
-To learn more about Next.js, take a look at the following resources:
+Database tests require `psql` and a **fresh disposable** local PostgreSQL 17 server/database. Do not use a Supabase database for these fixtures: they create a minimal mock `auth.users` table and `auth.uid()` function. The runner refuses nonlocal hosts and databases not named `mgzavri_test`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```powershell
+$env:PGHOST = '127.0.0.1'
+$env:PGPORT = '5432'
+$env:PGUSER = 'postgres'
+$env:PGDATABASE = 'mgzavri_test'
+# Configure the disposable test database password in PGPASSWORD locally.
+npm run test:db
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Recreate the disposable server/database before rerunning. The tests validate SQL and grants against PostgreSQL; they do not replace Supabase Auth, PostgREST API, or simultaneous-client tests against staging.
 
-## Deploy on Vercel
+## Database rollout
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Read [the launch checklist](docs/LAUNCH.md) before running SQL. The application now requires the security migration and new RPCs. Old app deployments using `rides.select('*')` will fail after the phone column is protected. A release must coordinate the application and database.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+For a fresh Supabase staging project, review and apply migrations in filename order:
+
+1. `202608100001_baseline.sql`
+2. `202608110001_core_marketplace.sql`
+3. `202609060001_security_foundation.sql`
+4. `20261016175559_backend_alignment.sql`
+
+For an existing database, first run `supabase/preflight.sql` and compare schema, grants, policies, trigger definitions and migration history. Do not rerun the legacy marketplace migration on an already hardened database. Never run a database reset against a hosted environment.
+
+Current contact access rules:
+
+- Visitors can read explicitly allowed public ride columns, including route, price and vehicle details.
+- Driver phone numbers can be retrieved only by the trip owner, an admin or a passenger with a confirmed booking.
+- Requests are visible to their owner and accounts assigned `driver`, `verified_driver` or `admin` by a trusted operator.
+- Only an operator with privileged database access can assign those roles. Browser users can update only their own name and phone.
+- Approved driver/admin accounts can post trips. Signed-in passengers can book seats and manage their own requests. Only a trusted operator can assign driver/admin roles; a role label alone is not proof of identity.
+- Writes affecting existing inventory go through database functions. Trips with booking history cannot be deleted.
+
+Track the rollout and remaining work in [docs/LAUNCH.md](docs/LAUNCH.md).

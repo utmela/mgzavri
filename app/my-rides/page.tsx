@@ -1,300 +1,273 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "../../lib/supabase";
 import Link from "next/link";
+import { IconArmchair, IconBus, IconCalendar, IconCheck, IconClock, IconExternalLink, IconLoader2, IconPencil, IconPlus, IconTrash, IconUser, IconUsers } from "@tabler/icons-react";
+import SeatStepper from "../../components/SeatStepper";
 import { useLanguage } from "../../components/LanguageProvider";
-import {
-  IconBus, IconClock, IconArmchair, IconCurrencyLari,
-  IconPencil, IconTrash, IconUsers, IconUser,
-} from "@tabler/icons-react";
+import RoutePhotoBanner from "../../components/RoutePhotoBanner";
+import ScenicPageHero from "../../components/ScenicPageHero";
+import { adjustRideSeats, createExternalBooking } from "../../lib/bookings";
+import { cityLabel, type Lang } from "../../lib/cities";
+import { formatDateTime } from "../../lib/format";
+import { api } from "../../lib/api";
+import { supabase } from "../../lib/supabase";
+import type { Booking, PassengerRequest, Ride } from "../../lib/types";
 
-const T = {
+type DriverRide = Ride & { bookings: Booking[] };
+
+const COPY = {
   en: {
-    myRides: "My Rides",
-    myBookings: "My Bookings",
-    driverTab: "Driver",
-    passengerTab: "Passenger",
-    subtitle: "Manage your posted trips and passengers.",
-    bookingSubtitle: "Rides you have booked.",
-    passengers: "Passengers",
-    noPassengers: "No passengers yet.",
-    seatsLeft: "Seats left",
-    price: "Price",
+    eyebrow: "DRIVER CONTROL",
+    title: "Driver dashboard",
+    subtitle: "Manage today’s trips and seat availability from one screen.",
+    addTrip: "Post a driver trip",
+    today: "Today",
+    upcoming: "Upcoming",
+    past: "Past trips",
+    available: "Available seats",
+    occupied: "occupied",
+    viewTrip: "View trip",
     edit: "Edit",
     delete: "Delete",
-    noRides: "No rides posted yet.",
-    noBookings: "No bookings yet.",
-    seatsBooked: "Seats",
-    total: "Total",
-    departure: "Departure",
+    passengers: "Passengers",
+    noPassengers: "No bookings yet.",
+    external: "Add external booking",
+    externalTitle: "Seats booked outside Mgzavri",
+    passengerName: "Passenger name (optional)",
+    seats: "Seats",
+    save: "Save booking",
+    cancel: "Cancel",
+    saved: "Availability updated",
+    noRides: "No trips listed yet.",
+    noRidesText: "Create your first intercity trip to start accepting passengers.",
+    requests: "Open passenger requests",
+    requestsText: "Existing route requests are kept here so you can spot demand.",
+    viewRequests: "View all requests",
+    loading: "Loading dashboard...",
+    signIn: "Sign in to manage your trips.",
+    driverOnly: "Driver access required",
+    driverOnlyText: "You are signed in as a passenger. Driver tools appear only on approved driver accounts.",
+    postRequest: "Post a passenger request",
+    fullVan: "Entire van booked",
   },
   ka: {
-    myRides: "ჩემი მგზავრობები",
-    myBookings: "ჩემი ჯავშნები",
-    driverTab: "მძღოლი",
-    passengerTab: "მგზავრი",
-    subtitle: "მართეთ თქვენი დამატებული მგზავრობები და მგზავრები.",
-    bookingSubtitle: "მგზავრობები, რომლებიც დაჯავშნეთ.",
-    passengers: "მგზავრები",
-    noPassengers: "ჯერ მგზავრები არ არიან.",
-    seatsLeft: "დარჩენილი ადგილები",
-    price: "ფასი",
+    eyebrow: "მძღოლის მართვა",
+    title: "მძღოლის პანელი",
+    subtitle: "მართეთ დღევანდელი რეისები და თავისუფალი ადგილები ერთ ეკრანზე.",
+    addTrip: "მძღოლის რეისის დამატება",
+    today: "დღეს",
+    upcoming: "მომავალი",
+    past: "გასული რეისები",
+    available: "თავისუფალი ადგილები",
+    occupied: "დაკავებულია",
+    viewTrip: "რეისის ნახვა",
     edit: "რედაქტირება",
     delete: "წაშლა",
-    noRides: "მგზავრობები არ არის.",
-    noBookings: "ჯავშნები არ არის.",
-    seatsBooked: "ადგილები",
-    total: "სულ",
-    departure: "გამგზავრება",
+    passengers: "მგზავრები",
+    noPassengers: "ჯავშნები ჯერ არ არის.",
+    external: "გარე ჯავშნის დამატება",
+    externalTitle: "Mgzavri-ს გარეთ დაჯავშნილი ადგილები",
+    passengerName: "მგზავრის სახელი (არასავალდებულო)",
+    seats: "ადგილები",
+    save: "ჯავშნის შენახვა",
+    cancel: "გაუქმება",
+    saved: "ხელმისაწვდომობა განახლდა",
+    noRides: "რეისები ჯერ არ დაგიმატებიათ.",
+    noRidesText: "დაამატეთ პირველი საქალაქთაშორისო რეისი მგზავრების მისაღებად.",
+    requests: "მგზავრების ღია მოთხოვნები",
+    requestsText: "არსებული მოთხოვნები აქ რჩება, რათა მოთხოვნა სწრაფად დაინახოთ.",
+    viewRequests: "ყველა მოთხოვნის ნახვა",
+    loading: "პანელი იტვირთება...",
+    signIn: "რეისების სამართავად შედით ანგარიშში.",
+    driverOnly: "საჭიროა მძღოლის წვდომა",
+    driverOnlyText: "თქვენ შესული ხართ როგორც მგზავრი. მძღოლის ხელსაწყოები მხოლოდ დადასტურებულ მძღოლებს აქვთ.",
+    postRequest: "მგზავრის მოთხოვნის დამატება",
+    fullVan: "მთლიანი მინივენი დაჯავშნილია",
   },
-};
+} as const;
 
-type Ride = {
-  id: string;
-  from_city: string;
-  to_city: string;
-  departure_time: string;
-  vehicle_type: string;
-  seats_available: number;
-  price_per_seat: number;
-  bookings: { id: string; passenger_name: string; seats_booked: number }[];
-};
+function dayKey(value: string) {
+  const date = new Date(value);
+  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+}
 
-type Booking = {
-  id: string;
-  passenger_name: string;
-  seats_booked: number;
-  total_price: number | null;
-  payment_status: string;
-  ride: {
-    id: string;
-    from_city: string;
-    to_city: string;
-    departure_time: string;
-    price_per_seat: number;
-    vehicle_type: string;
-  };
-};
+function DriverTripCard({ ride, lang, onRefresh, onDelete }: { ride: DriverRide; lang: Lang; onRefresh: () => Promise<void>; onDelete: (id: string) => Promise<void> }) {
+  const text = COPY[lang];
+  const [busy, setBusy] = useState(false);
+  const [feedback, setFeedback] = useState("");
+  const [error, setError] = useState("");
+  const [externalOpen, setExternalOpen] = useState(false);
+  const [externalSeats, setExternalSeats] = useState(1);
+  const [externalName, setExternalName] = useState("");
+  const activeBookings = (ride.bookings ?? []).filter((booking) => booking.status !== "cancelled");
+  const occupied = ride.seats_total - ride.seats_available;
+  const departure = new Date(ride.departure_time);
 
-export default function MyRides() {
-  const { lang } = useLanguage();
-  const t = T[lang as "en" | "ka"];
+  async function changeSeats(delta: number) {
+    setBusy(true);
+    setError("");
+    try {
+      await adjustRideSeats(ride.id, delta);
+      setFeedback(text.saved);
+      await onRefresh();
+      window.setTimeout(() => setFeedback(""), 1600);
+    } catch (updateError) {
+      setError(updateError instanceof Error ? updateError.message : "Update failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
 
-  const [tab, setTab] = useState<"driver" | "passenger">("driver");
-  const [rides, setRides] = useState<Ride[]>([]);
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  async function saveExternal(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      await createExternalBooking(ride.id, externalSeats, externalName);
+      setExternalOpen(false);
+      setExternalSeats(1);
+      setExternalName("");
+      setFeedback(text.saved);
+      await onRefresh();
+    } catch (updateError) {
+      setError(updateError instanceof Error ? updateError.message : "Booking failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <article className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:border-violet-200 hover:shadow-xl hover:shadow-violet-950/10">
+      <RoutePhotoBanner from={ride.from_city} to={ride.to_city} lang={lang} compact />
+      <div className="p-4 sm:p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-black text-slate-950">{cityLabel(ride.from_city, lang)} <span className="text-violet-500">→</span> {cityLabel(ride.to_city, lang)}</h3>
+            <p className="mt-2 flex items-center gap-2 text-sm font-bold text-slate-600"><IconClock size={15} className="text-violet-600" /> {formatDateTime(departure, lang, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
+          </div>
+          <div className="flex gap-2">
+            <Link href={`/ride/${ride.id}`} aria-label={text.viewTrip} className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50"><IconExternalLink size={16} /></Link>
+            <Link href={`/edit-ride/${ride.id}`} aria-label={text.edit} className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50"><IconPencil size={16} /></Link>
+            <button type="button" onClick={() => void onDelete(ride.id)} aria-label={text.delete} className="flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 text-red-600 hover:bg-red-50"><IconTrash size={16} /></button>
+          </div>
+        </div>
+
+        <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="text-xs font-black uppercase tracking-wide text-slate-500">{text.available}</p>
+              <p className="mt-1 text-sm font-bold text-slate-600">{occupied} / {ride.seats_total} {text.occupied}</p>
+            </div>
+            {ride.full_van_booked ? (
+              <span className="rounded-xl bg-violet-100 px-4 py-3 text-sm font-black text-violet-800">{text.fullVan}</span>
+            ) : (
+              <div className="flex items-center gap-3">
+                <button type="button" onClick={() => void changeSeats(-1)} disabled={busy || ride.seats_available <= 0} aria-label="Decrease available seats" className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900 text-2xl font-black text-white disabled:opacity-35">−</button>
+                <div className="min-w-24 text-center"><span className="block text-3xl font-black text-slate-950">{ride.seats_available}</span><span className="text-xs font-bold text-slate-500">/ {ride.seats_total}</span></div>
+                <button type="button" onClick={() => void changeSeats(1)} disabled={busy || ride.seats_available >= ride.seats_total} aria-label="Increase available seats" className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900 text-2xl font-black text-white disabled:opacity-35">+</button>
+              </div>
+            )}
+          </div>
+          {feedback && <p aria-live="polite" className="mt-3 flex items-center gap-1.5 text-xs font-black text-violet-700"><IconCheck size={14} /> {feedback}</p>}
+          {error && <p role="alert" className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-700">{error}</p>}
+        </div>
+
+        {!ride.full_van_booked && ride.seats_available > 0 && (
+          <button type="button" onClick={() => setExternalOpen((value) => !value)} className="mt-4 inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-black text-violet-800 hover:bg-violet-100"><IconPlus size={16} /> {text.external}</button>
+        )}
+
+        {externalOpen && (
+          <form onSubmit={saveExternal} className="mt-4 rounded-2xl border border-violet-200 bg-violet-50 p-4">
+            <h4 className="font-black text-slate-900">{text.externalTitle}</h4>
+            <div className="mt-4 flex flex-wrap items-end gap-4">
+              <SeatStepper value={externalSeats} max={ride.seats_available} onChange={setExternalSeats} label={text.seats} />
+              <label className="min-w-56 flex-1 text-xs font-black uppercase tracking-wide text-slate-600">{text.passengerName}<input value={externalName} onChange={(event) => setExternalName(event.target.value)} className="mt-2 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold normal-case tracking-normal outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-100" /></label>
+            </div>
+            <div className="mt-4 flex gap-3"><button type="submit" disabled={busy} className="inline-flex h-10 items-center gap-2 rounded-xl bg-violet-600 px-4 text-sm font-black text-white disabled:opacity-50">{busy && <IconLoader2 size={15} className="animate-spin" />} {text.save}</button><button type="button" onClick={() => setExternalOpen(false)} className="h-10 rounded-xl border border-slate-300 bg-white px-4 text-sm font-black text-slate-700">{text.cancel}</button></div>
+          </form>
+        )}
+
+        <details className="mt-5 border-t border-slate-200 pt-4">
+          <summary className="cursor-pointer list-none text-sm font-black text-slate-800"><span className="inline-flex items-center gap-2"><IconUsers size={16} className="text-violet-600" /> {text.passengers} ({activeBookings.length})</span></summary>
+          {activeBookings.length === 0 ? <p className="mt-3 text-sm font-semibold text-slate-500">{text.noPassengers}</p> : <div className="mt-3 space-y-2">{activeBookings.map((booking) => <div key={booking.id} className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2.5"><div><p className="text-sm font-black text-slate-900">{booking.passenger_name || text.passengers}</p><p className="text-xs font-semibold text-slate-500">{booking.source === "external" ? text.external : booking.passenger_phone}</p></div><span className="inline-flex items-center gap-1 rounded-lg bg-white px-2.5 py-1 text-xs font-black text-slate-700"><IconArmchair size={13} /> {booking.seats_booked}</span></div>)}</div>}
+        </details>
+      </div>
+    </article>
+  );
+}
+
+export default function MyRidesPage() {
+  const { lang } = useLanguage() as { lang: Lang };
+  const text = COPY[lang];
+  const [rides, setRides] = useState<DriverRide[]>([]);
+  const [requests, setRequests] = useState<PassengerRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [signedIn, setSignedIn] = useState(true);
+  const [driverAccess, setDriverAccess] = useState(false);
+  const [error, setError] = useState("");
 
   async function loadAll() {
-    setLoading(true);
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return;
-    const uid = userData.user.id;
+    const { data: authData } = await supabase.auth.getUser();
+    if (!authData.user) {
+      setSignedIn(false);
+      setLoading(false);
+      return;
+    }
 
-    // Driver: rides I posted + their bookings
-    const { data: ridesData, error: ridesErr } = await supabase
-      .from("rides")
-      .select(`
-        id, from_city, to_city, departure_time, vehicle_type, seats_available, price_per_seat,
-        bookings ( id, passenger_name, seats_booked )
-      `)
-      .eq("user_id", uid)
-      .order("departure_time", { ascending: true });
+    const { data: profile } = await api<{ role: string }>("/profile");
+    const role = profile?.role;
+    if (role !== "driver" && role !== "verified_driver" && role !== "admin") {
+      setDriverAccess(false);
+      setLoading(false);
+      return;
+    }
+    setDriverAccess(true);
 
-    if (ridesErr) console.error("RIDES ERR:", ridesErr);
-    if (ridesData) setRides(ridesData as any);
-
-    // Passenger: bookings I made
-    const { data: bookingsData, error: bookingsErr } = await supabase
-      .from("bookings")
-      .select(`
-        id, passenger_name, seats_booked, total_price, payment_status,
-        ride:ride_id ( id, from_city, to_city, departure_time, price_per_seat, vehicle_type )
-      `)
-      .eq("user_id", uid)
-      .order("id", { ascending: false });
-
-    if (bookingsErr) console.error("BOOKINGS ERR:", bookingsErr);
-    if (bookingsData) setBookings(bookingsData as any);
-
+    const [ridesResult, requestsResult] = await Promise.all([
+      api<DriverRide[]>("/rides?scope=mine"),
+      api<PassengerRequest[]>("/requests?limit=8"),
+    ]);
+    if (ridesResult.error) setError(ridesResult.error.message);
+    setRides((ridesResult.data ?? []) as DriverRide[]);
+    setRequests((requestsResult.data ?? []) as PassengerRequest[]);
     setLoading(false);
   }
 
+  useEffect(() => {
+    void loadAll();
+  }, []);
+
   async function deleteRide(id: string) {
-    if (!confirm("Delete this ride?")) return;
-    await supabase.from("rides").delete().eq("id", id);
-    loadAll();
+    if (!window.confirm("Delete this trip?")) return;
+    const { error: deleteError } = await api(`/rides/${id}`, { method: "DELETE" });
+    if (deleteError) setError(deleteError.message);
+    else await loadAll();
   }
 
-  useEffect(() => { loadAll(); }, []);
+  if (loading) return <div className="flex min-h-[60vh] items-center justify-center text-sm font-bold text-slate-500"><IconLoader2 size={18} className="mr-2 animate-spin text-violet-600" /> {text.loading}</div>;
+  if (!signedIn) return <div className="mx-auto max-w-lg px-4 py-20 text-center"><IconUser size={32} className="mx-auto text-slate-400" /><h1 className="mt-4 text-2xl font-black text-slate-900">{text.signIn}</h1><Link href="/auth" className="mt-5 inline-flex rounded-xl bg-violet-600 px-5 py-3 text-sm font-black text-white">{text.signIn}</Link></div>;
+  if (!driverAccess) return <div className="mx-auto max-w-lg px-4 py-20 text-center"><span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-violet-100 text-violet-800"><IconUser size={28} /></span><p className="mt-5 text-xs font-black uppercase tracking-[0.16em] text-violet-700">{lang === "ka" ? "მგზავრის ანგარიში" : "Passenger account"}</p><h1 className="mt-2 text-2xl font-black text-slate-950">{text.driverOnly}</h1><p className="mt-3 text-sm font-semibold leading-6 text-slate-600">{text.driverOnlyText}</p><Link href="/post-request" className="mt-6 inline-flex rounded-xl bg-violet-600 px-5 py-3 text-sm font-black text-white">{text.postRequest}</Link></div>;
 
-  if (loading) return (
-    <div className="p-10 text-center text-sm font-black text-gray-500">Loading...</div>
-  );
+  const now = new Date();
+  const today = dayKey(now.toISOString());
+  const todayRides = rides.filter((ride) => dayKey(ride.departure_time) === today && new Date(ride.departure_time) >= now);
+  const upcomingRides = rides.filter((ride) => dayKey(ride.departure_time) !== today && new Date(ride.departure_time) >= now);
+  const pastRides = rides.filter((ride) => new Date(ride.departure_time) < now);
+  const section = (title: string, items: DriverRide[]) => items.length ? <section className="mt-8"><h2 className="mb-4 text-xs font-black uppercase tracking-[0.16em] text-slate-500">{title}</h2><div className="space-y-4">{items.map((ride) => <DriverTripCard key={ride.id} ride={ride} lang={lang} onRefresh={loadAll} onDelete={deleteRide} />)}</div></section> : null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,_#ede9fe_0,_#faf8ff_34%,_#faf8ff_100%)]">
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
+        <ScenicPageHero tone="driver" showRoute={false} eyebrow={text.eyebrow} title={text.title} subtitle={text.subtitle} lang={lang} action={<><Link href="/post" className="inline-flex h-11 items-center gap-2 rounded-xl bg-white px-4 text-sm font-black text-violet-950 shadow-lg hover:bg-violet-50"><IconPlus size={16} /> {text.addTrip}</Link><Link href="/driver-requests" className="inline-flex h-11 items-center rounded-xl border border-white/25 bg-white/10 px-4 text-sm font-black text-white backdrop-blur hover:bg-white/20">{text.viewRequests}</Link></>} meta={<span className="rounded-full border border-white/15 bg-white/10 px-3 py-2 text-xs font-black backdrop-blur">{todayRides.length + upcomingRides.length} {text.upcoming.toLowerCase()}</span>} />
+        {error && <p role="alert" className="mt-5 rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{error}</p>}
 
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-black text-gray-900">
-            {tab === "driver" ? t.myRides : t.myBookings}
-          </h1>
-          <p className="font-extrabold text-gray-600 mt-2">
-            {tab === "driver" ? t.subtitle : t.bookingSubtitle}
-          </p>
-        </div>
+        {rides.length === 0 ? <div className="mt-8 rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center"><IconBus size={34} className="mx-auto text-slate-400" /><h2 className="mt-4 text-xl font-black text-slate-900">{text.noRides}</h2><p className="mt-2 text-sm font-medium text-slate-600">{text.noRidesText}</p></div> : <>{section(text.today, todayRides)}{section(text.upcoming, upcomingRides)}{section(text.past, pastRides)}</>}
 
-        {/* Tabs */}
-        <div className="mb-8 flex gap-2">
-          <button
-            onClick={() => setTab("driver")}
-            className={`flex items-center gap-2 rounded-2xl px-5 py-2.5 text-sm font-black transition ${
-              tab === "driver"
-                ? "bg-violet-600 text-white shadow-md shadow-violet-200"
-                : "bg-white border border-gray-200 text-gray-600 hover:border-violet-300 hover:text-violet-700"
-            }`}
-          >
-            <IconBus size={16} stroke={2.5} /> {t.driverTab}
-          </button>
-          <button
-            onClick={() => setTab("passenger")}
-            className={`flex items-center gap-2 rounded-2xl px-5 py-2.5 text-sm font-black transition ${
-              tab === "passenger"
-                ? "bg-violet-600 text-white shadow-md shadow-violet-200"
-                : "bg-white border border-gray-200 text-gray-600 hover:border-violet-300 hover:text-violet-700"
-            }`}
-          >
-            <IconUser size={16} stroke={2.5} /> {t.passengerTab}
-          </button>
-        </div>
-
-        {/* Driver View */}
-        {tab === "driver" && (
-          <div className="space-y-6">
-            {rides.length === 0 && (
-              <div className="rounded-3xl border border-dashed border-gray-200 bg-white py-20 text-center shadow-sm">
-                <IconBus size={48} stroke={1} className="mx-auto mb-3 text-gray-300" />
-                <p className="text-lg font-black text-gray-800">{t.noRides}</p>
-              </div>
-            )}
-            {rides.map(ride => (
-              <div key={ride.id} className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
-                <div className="bg-gradient-to-r from-violet-600 to-purple-600 px-6 py-4 text-white">
-                  <h2 className="text-lg font-black flex items-center gap-2">
-                    <IconBus size={18} stroke={2.5} /> {ride.from_city} → {ride.to_city}
-                  </h2>
-                </div>
-                <div className="p-6 flex flex-wrap items-start justify-between gap-4">
-                  <div className="space-y-2 text-sm">
-                    <p className="font-extrabold text-gray-800 flex items-center gap-2">
-                      <IconBus size={15} stroke={2} className="text-violet-400" /> {ride.vehicle_type}
-                    </p>
-                    <p className="font-extrabold text-gray-800 flex items-center gap-2">
-                      <IconClock size={15} stroke={2} className="text-violet-400" />
-                      {new Date(ride.departure_time).toLocaleString()}
-                    </p>
-                    <p className="font-extrabold text-gray-800 flex items-center gap-2">
-                      <IconArmchair size={15} stroke={2} className="text-violet-400" />
-                      {t.seatsLeft}: <span className="font-black text-gray-900">{ride.seats_available}</span>
-                    </p>
-                    <p className="font-extrabold text-gray-800 flex items-center gap-2">
-                      <IconCurrencyLari size={15} stroke={2} className="text-violet-400" />
-                      {t.price}: <span className="font-black text-violet-700">{ride.price_per_seat}₾</span>
-                    </p>
-                  </div>
-                  <div className="flex gap-3">
-                    <Link href={`/edit-ride/${ride.id}`}
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-violet-600 px-4 py-2 text-sm font-black text-white hover:bg-violet-700 transition">
-                      <IconPencil size={14} stroke={2.5} /> {t.edit}
-                    </Link>
-                    <button onClick={() => deleteRide(ride.id)}
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-red-500 px-4 py-2 text-sm font-black text-white hover:bg-red-600 transition">
-                      <IconTrash size={14} stroke={2.5} /> {t.delete}
-                    </button>
-                  </div>
-                </div>
-                <div className="px-6 pb-6">
-                  <h3 className="text-sm font-black text-gray-900 mb-3 flex items-center gap-2">
-                    <IconUsers size={16} stroke={2} className="text-violet-500" /> {t.passengers}
-                    {ride.bookings.length > 0 && (
-                      <span className="ml-1 rounded-full bg-violet-100 px-2 py-0.5 text-xs font-black text-violet-700">
-                        {ride.bookings.length}
-                      </span>
-                    )}
-                  </h3>
-                  {ride.bookings.length === 0 ? (
-                    <p className="text-sm font-extrabold text-gray-500">{t.noPassengers}</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {ride.bookings.map(b => (
-                        <div key={b.id} className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3">
-                          <p className="font-black text-gray-900">{b.passenger_name}</p>
-                          <div className="flex items-center gap-1.5 rounded-lg bg-violet-100 px-3 py-1">
-                            <IconArmchair size={13} stroke={2.5} className="text-violet-600" />
-                            <span className="text-sm font-black text-violet-700">{b.seats_booked}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Passenger View */}
-        {tab === "passenger" && (
-          <div className="space-y-4">
-            {bookings.length === 0 && (
-              <div className="rounded-3xl border border-dashed border-gray-200 bg-white py-20 text-center shadow-sm">
-                <IconUser size={48} stroke={1} className="mx-auto mb-3 text-gray-300" />
-                <p className="text-lg font-black text-gray-800">{t.noBookings}</p>
-              </div>
-            )}
-            {bookings.map(b => (
-              <div key={b.id} className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
-                <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-4 text-white">
-                  <h2 className="text-lg font-black flex items-center gap-2">
-                    <IconBus size={18} stroke={2.5} />
-                    {b.ride?.from_city} → {b.ride?.to_city}
-                  </h2>
-                </div>
-                <div className="p-6 flex flex-wrap items-center justify-between gap-4">
-                  <div className="space-y-2 text-sm">
-                    <p className="font-extrabold text-gray-800 flex items-center gap-2">
-                      <IconClock size={15} stroke={2} className="text-emerald-400" />
-                      {b.ride?.departure_time
-                        ? new Date(b.ride.departure_time).toLocaleString()
-                        : "—"}
-                    </p>
-                    <p className="font-extrabold text-gray-800 flex items-center gap-2">
-                      <IconArmchair size={15} stroke={2} className="text-emerald-400" />
-                      {t.seatsBooked}: <span className="font-black text-gray-900">{b.seats_booked}</span>
-                    </p>
-                    <p className="font-extrabold text-gray-800 flex items-center gap-2">
-                      <IconCurrencyLari size={15} stroke={2} className="text-emerald-400" />
-                      {t.total}: <span className="font-black text-emerald-700">
-                        {b.total_price ?? (b.ride?.price_per_seat ?? 0) * b.seats_booked}₾
-                      </span>
-                    </p>
-                  </div>
-                  <div className={`rounded-2xl px-4 py-2 text-xs font-black uppercase tracking-wide ${
-                    b.payment_status === "paid"
-                      ? "bg-emerald-100 text-emerald-700"
-                      : "bg-amber-100 text-amber-700"
-                  }`}>
-                    {b.payment_status}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
+        <section className="mt-10 border-t border-slate-200 pt-8">
+          <div className="flex flex-wrap items-end justify-between gap-4"><div><h2 className="text-xl font-black text-slate-950">{text.requests}</h2><p className="mt-2 text-sm font-medium text-slate-600">{text.requestsText}</p></div><Link href="/driver-requests" className="rounded-xl bg-violet-950 px-4 py-2.5 text-sm font-black text-white hover:bg-violet-900">{text.viewRequests}</Link></div>
+          <div className="mt-4 space-y-2">{requests.map((request) => <div key={request.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3"><div><p className="font-black text-slate-900">{cityLabel(request.from_city, lang)} → {cityLabel(request.to_city, lang)}</p><p className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-slate-500"><IconCalendar size={13} /> {new Date(request.departure_date).toLocaleDateString(lang === "ka" ? "ka-GE" : "en-GB")} · {request.passengers} {text.passengers.toLowerCase()}</p></div><a href={`tel:${request.phone}`} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-black text-slate-700">{request.phone}</a></div>)}</div>
+        </section>
       </div>
     </div>
   );

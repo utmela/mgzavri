@@ -1,0 +1,78 @@
+name: Release checks
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  application:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm audit --audit-level=moderate
+      - run: npm run check
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://build-placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_build_placeholder
+  database:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: local_test_only
+          POSTGRES_DB: mgzavri_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: local_test_only
+      PGDATABASE: mgzavri_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - run: npm run test:db
+  concurrency-and-restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run test:db:local
+  container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build production container without secret environment files
+        run: docker build --build-arg NEXT_PUBLIC_SUPABASE_URL=https://build-placeholder.supabase.co --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_build_placeholder -t mgzavri-ci .
+      - name: Verify non-root process and liveness
+        run: |
+          docker run -d --name mgzavri-ci -p 127.0.0.1:3000:3000 --read-only --tmpfs /tmp --tmpfs /app/.next/cache:uid=1001,gid=1001 --cap-drop ALL --security-opt no-new-privileges:true mgzavri-ci
+          test "$(docker exec mgzavri-ci id -u)" = '1001'
+          for attempt in $(seq 1 15); do
+            if curl --fail --silent http://127.0.0.1:3000/api/live; then exit 0; fi
+            sleep 2
+          done
+          docker logs mgzavri-ci
+          exit 1
