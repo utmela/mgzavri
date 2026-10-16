@@ -1,0 +1,12 @@
+node_modules
+.next
+.git
+.env*
+!.env.example
+backups
+.test-data
+.npm-cache
+supabase/.temp
+supabase/.branches
+*.log
+*.tsbuildinfo

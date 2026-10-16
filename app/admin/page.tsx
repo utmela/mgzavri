@@ -1,24 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import type { User } from "@supabase/supabase-js";
+import { api } from "../../lib/api";
 import { supabase } from "../../lib/supabase";
+import { cancelBooking } from "../../lib/bookings";
+import ScenicPageHero from "../../components/ScenicPageHero";
+import DriverContact from "../../components/DriverContact";
 import {
   IconShield, IconRefresh, IconArrowLeft, IconTrash,
   IconBus, IconBookmark, IconChartBar, IconSearch,
   IconLoader2, IconEye, IconUser,
 } from "@tabler/icons-react";
 
-const ADMIN_IDS: string[] = [
-  "5d249be0-a9a5-43da-a4fd-b43f75fe09b0",
-  "110e686c-d3b4-4060-b72e-ffd0c6cc9727",
-];
-
 type Ride = {
   id: string; user_id: string; from_city: string; to_city: string;
   price_per_seat: number; seats_total: number; seats_available: number;
-  phone: string; vehicle_type: string; departure_time: string;
+  vehicle_type: string; departure_time: string;
   plate_number?: string; vehicle_color?: string; created_at?: string;
 };
 
@@ -29,8 +29,8 @@ type Request = {
 };
 
 type Booking = {
-  id: string; ride_id: string; user_id: string;
-  seats: number; status: string; created_at: string;
+  id: string; ride_id: string; user_id: string | null;
+  seats_booked: number; total_price?: number; status: string; created_at: string;
   passenger_name?: string; passenger_phone?: string;
 };
 
@@ -38,8 +38,9 @@ type Tab = "rides" | "requests" | "bookings" | "stats";
 
 export default function AdminPage() {
   const router = useRouter();
-  const [user,       setUser]       = useState<any>(null);
+  const [user,       setUser]       = useState<User | null>(null);
   const [authReady,  setAuthReady]  = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [rides,      setRides]      = useState<Ride[]>([]);
   const [requests,   setRequests]   = useState<Request[]>([]);
   const [bookings,   setBookings]   = useState<Booking[]>([]);
@@ -49,34 +50,38 @@ export default function AdminPage() {
   const [search,     setSearch]     = useState("");
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(async ({ data }) => {
       const u = data.user;
+      const { data: profile, error } = u ? await api<{ role: string }>("/profile") : { data: null, error: null };
+      const allowed = profile?.role === "admin";
       setUser(u);
+      setIsAdmin(allowed === true && !error);
       setAuthReady(true);
-      if (!u || !ADMIN_IDS.includes(u.id)) router.replace("/");
+      if (!u || allowed !== true || error) router.replace("/");
     });
-  }, []);
+  }, [router]);
 
-  async function loadAll() {
+  const loadAll = useCallback(async () => {
     setLoading(true);
-    const [rRes, reqRes, bRes] = await Promise.all([
-      supabase.from("rides").select("*").order("created_at", { ascending: false }),
-      supabase.from("requests").select("*").order("created_at", { ascending: false }),
-      supabase.from("bookings").select("*").order("created_at", { ascending: false }),
-    ]);
-    setRides(rRes.data ?? []);
-    setRequests(reqRes.data ?? []);
-    setBookings(bRes.data ?? []);
+    const { data, error } = await api<{ rides: Ride[]; requests: Request[]; bookings: Booking[] }>("/admin");
+    if (error?.code === "MFA_REQUIRED") { router.replace("/security?next=%2Fadmin"); return; }
+    if (error) alert(error.message);
+    setRides(data?.rides ?? []);
+    setRequests(data?.requests ?? []);
+    setBookings(data?.bookings ?? []);
     setLoading(false);
-  }
+  }, [router]);
 
-  useEffect(() => { if (authReady && user && ADMIN_IDS.includes(user.id)) loadAll(); }, [authReady]);
+  useEffect(() => {
+    // The authenticated admin triggers the initial remote dashboard load.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (authReady && user && isAdmin) void loadAll();
+  }, [authReady, user, isAdmin, loadAll]);
 
   async function deleteRide(id: string) {
-    if (!confirm("Permanently delete this ride and all its bookings?")) return;
+    if (!confirm("Delete this ride? Trips with booking history must be retained.")) return;
     setDeletingId(id);
-    await supabase.from("bookings").delete().eq("ride_id", id);
-    const { error } = await supabase.from("rides").delete().eq("id", id);
+    const { error } = await api(`/rides/${id}`, { method: "DELETE" });
     if (error) alert("Error: " + error.message);
     else await loadAll();
     setDeletingId(null);
@@ -85,7 +90,7 @@ export default function AdminPage() {
   async function deleteRequest(id: string) {
     if (!confirm("Delete this passenger request?")) return;
     setDeletingId(id);
-    const { error } = await supabase.from("requests").delete().eq("id", id);
+    const { error } = await api(`/requests/${id}`, { method: "DELETE" });
     if (error) alert("Error: " + error.message);
     else await loadAll();
     setDeletingId(null);
@@ -93,9 +98,12 @@ export default function AdminPage() {
 
   async function deleteBooking(id: string) {
     if (!confirm("Cancel this booking?")) return;
-    const { error } = await supabase.from("bookings").delete().eq("id", id);
-    if (error) alert("Error: " + error.message);
-    else await loadAll();
+    try {
+      await cancelBooking(id);
+      await loadAll();
+    } catch (error) {
+      alert("Error: " + (error instanceof Error ? error.message : "Cancellation failed"));
+    }
   }
 
   if (!authReady) return (
@@ -105,21 +113,20 @@ export default function AdminPage() {
       </div>
     </div>
   );
-  if (!user || !ADMIN_IDS.includes(user.id)) return (
+  if (!user || !isAdmin) return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <p className="text-sm font-black text-gray-400">Access denied.</p>
     </div>
   );
 
   const totalRevenue = bookings.reduce((s, b) => {
-    const ride = rides.find(r => r.id === b.ride_id);
-    return s + (ride ? ride.price_per_seat * b.seats : 0);
+    return s + (b.total_price ?? 0);
   }, 0);
 
   const q = search.toLowerCase();
   const filteredRides    = rides.filter(r =>
     !q || r.from_city.toLowerCase().includes(q) || r.to_city.toLowerCase().includes(q) ||
-    r.phone.includes(q) || r.vehicle_type?.toLowerCase().includes(q));
+    r.id.includes(q) || r.vehicle_type?.toLowerCase().includes(q));
   const filteredRequests = requests.filter(r =>
     !q || r.from_city.toLowerCase().includes(q) || r.to_city.toLowerCase().includes(q) ||
     r.phone.includes(q));
@@ -141,10 +148,10 @@ export default function AdminPage() {
     <div className="min-h-screen bg-gray-50 font-sans">
 
       {/* Admin header */}
-      <div className="sticky top-0 z-50 border-b border-amber-200 bg-amber-50/95 backdrop-blur-sm">
+      <div className="sticky top-0 z-50 border-b border-violet-200 bg-violet-50/95 backdrop-blur-sm">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-violet-600">
               <IconShield size={16} stroke={2} className="text-white" />
             </div>
             <div>
@@ -154,7 +161,7 @@ export default function AdminPage() {
           </div>
           <div className="flex items-center gap-2">
             <button onClick={loadAll}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-white px-3 py-1.5 text-xs font-black text-amber-700 hover:bg-amber-100 transition">
+              className="inline-flex items-center gap-1.5 rounded-lg border border-violet-200 bg-white px-3 py-1.5 text-xs font-black text-violet-700 hover:bg-violet-100 transition">
               <IconRefresh size={13} stroke={2.5} /> Refresh
             </button>
             <Link href="/"
@@ -167,13 +174,15 @@ export default function AdminPage() {
 
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 space-y-5">
 
+        <ScenicPageHero eyebrow="MGZAVRI OPERATIONS" title="Marketplace overview" subtitle="Monitor routes, passenger demand, bookings, and estimated revenue from one visual workspace." lang="en" from="Tbilisi" to="Kutaisi" meta={<span className="rounded-full border border-white/15 bg-white/10 px-3 py-2 text-xs font-black backdrop-blur">Live marketplace data</span>} />
+
         {/* Stats cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
             { icon: <IconBus size={18} stroke={1.5} className="text-violet-500" />,      val: rides.length,       label: "Total rides",     bg: "bg-violet-50" },
-            { icon: <IconUser size={18} stroke={1.5} className="text-emerald-500" />,    val: requests.length,    label: "Requests",        bg: "bg-emerald-50" },
-            { icon: <IconBookmark size={18} stroke={1.5} className="text-blue-500" />,   val: bookings.length,    label: "Bookings",        bg: "bg-blue-50" },
-            { icon: <IconChartBar size={18} stroke={1.5} className="text-amber-500" />,  val: `${totalRevenue}₾`, label: "Est. revenue",    bg: "bg-amber-50" },
+            { icon: <IconUser size={18} stroke={1.5} className="text-violet-500" />,    val: requests.length,    label: "Requests",        bg: "bg-violet-50" },
+            { icon: <IconBookmark size={18} stroke={1.5} className="text-violet-500" />,   val: bookings.length,    label: "Bookings",        bg: "bg-violet-50" },
+            { icon: <IconChartBar size={18} stroke={1.5} className="text-violet-500" />,  val: `${totalRevenue}₾`, label: "Est. revenue",    bg: "bg-violet-50" },
           ].map(s => (
             <div key={s.label} className={`rounded-2xl border border-gray-200 ${s.bg} p-4`}>
               <div className="mb-2">{s.icon}</div>
@@ -235,7 +244,7 @@ export default function AdminPage() {
                       <td className={tdCls + " font-black text-gray-800 whitespace-nowrap"}>{r.seats_available}/{r.seats_total}</td>
                       <td className={tdCls + " font-black text-violet-700 whitespace-nowrap"}>{r.price_per_seat}₾</td>
                       <td className={tdCls + " whitespace-nowrap"}>
-                        <a href={`tel:${r.phone}`} className="font-black text-violet-600 hover:underline">{r.phone}</a>
+                        <DriverContact rideId={r.id} lang="en" />
                       </td>
                       <td className={tdCls + " font-mono text-xs text-gray-400 whitespace-nowrap"} title={r.user_id}>{r.user_id?.slice(0, 8)}…</td>
                       <td className={tdCls + " whitespace-nowrap"}>
@@ -327,10 +336,10 @@ export default function AdminPage() {
                             ? <a href={`tel:${b.passenger_phone}`} className="font-black text-violet-600 hover:underline">{b.passenger_phone}</a>
                             : "—"}
                         </td>
-                        <td className={tdCls + " font-black text-violet-700"}>{b.seats}</td>
+                        <td className={tdCls + " font-black text-violet-700"}>{b.seats_booked}</td>
                         <td className={tdCls}>
                           <span className={`rounded-full px-2.5 py-1 text-[11px] font-black ${
-                            b.status === "confirmed" ? "bg-emerald-100 text-emerald-700" :
+                            b.status === "confirmed" ? "bg-violet-100 text-violet-700" :
                             b.status === "cancelled" ? "bg-red-100 text-red-600" :
                             "bg-gray-100 text-gray-600"
                           }`}>{b.status}</span>

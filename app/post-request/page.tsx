@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
+import { api } from "../../lib/api";
 import { supabase } from "../../lib/supabase";
 import CustomSelect from "../../components/CustomSelect";
 import CustomDateTimePicker from "../../components/CustomDateTimePicker";
 import { useLanguage } from "../../components/LanguageProvider";
+import ScenicPageHero from "../../components/ScenicPageHero";
 import {
   IconUser, IconMapPin, IconCalendar, IconPhone, IconCurrencyLari,
   IconUsers, IconNotes, IconSkiJumping, IconLuggage, IconPaw,
@@ -54,11 +56,11 @@ const CITIES = [
 
 const T = {
   en: {
-    title: "Post a request", sub: "Let drivers know you need a ride.",
+    title: "Post a passenger request", sub: "Tell approved drivers where you need to travel.",
     from: "From", to: "To", date: "Travel date", passengers: "Passengers",
     budget: "Budget per seat (₾)", budgetHint: "Leave empty if flexible",
     phone: "Phone number", note: "Note (optional)", notePlaceholder: "Any extra info for the driver…",
-    submit: "Post request", publishing: "Posting…",
+    submit: "Post passenger request", publishing: "Posting…",
     success: "Request posted successfully!", error: "Please fill in all required fields.",
     sameCity: "From and To cannot be the same.", back: "Back to home",
     choose: "Choose city", loginWarn: "You must be signed in to post a request.",
@@ -67,11 +69,11 @@ const T = {
     step3sub: "What are you bringing?",
   },
   ka: {
-    title: "მოთხოვნის დამატება", sub: "აცნობე მძღოლებს, რომ მგზავრობა გჭირდება.",
+    title: "მგზავრის მოთხოვნის დამატება", sub: "აცნობეთ დადასტურებულ მძღოლებს, სად გსურთ გამგზავრება.",
     from: "საიდან", to: "სადამდე", date: "მგზავრობის თარიღი", passengers: "მგზავრების რაოდენობა",
     budget: "ბიუჯეტი ერთ ადგილზე (₾)", budgetHint: "დატოვე ცარიელი თუ მოქნილია",
     phone: "ტელეფონის ნომერი", note: "შენიშვნა (სურვილისამებრ)", notePlaceholder: "დამატებითი ინფორმაცია მძღოლისთვის…",
-    submit: "მოთხოვნის გამოქვეყნება", publishing: "იტვირთება…",
+    submit: "მგზავრის მოთხოვნის გამოქვეყნება", publishing: "იტვირთება…",
     success: "მოთხოვნა წარმატებით დაემატა!", error: "შეავსეთ ყველა სავალდებულო ველი.",
     sameCity: "საწყისი და საბოლოო ქალაქი ერთნაირი ვერ იქნება.", back: "მთავარზე დაბრუნება",
     choose: "აირჩიე ქალაქი", loginWarn: "გამოქვეყნებისთვის გაიარე ავტორიზაცია.",
@@ -83,15 +85,16 @@ const T = {
 
 type Lang = keyof typeof T;
 
-export default function PostRequestPage() {
+function PostRequestContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { lang } = useLanguage();
   const t = T[lang as Lang];
 
-  const [fromCity,    setFromCity]    = useState("");
-  const [toCity,      setToCity]      = useState("");
-  const [date,        setDate]        = useState("");
-  const [passengers,  setPassengers]  = useState(1);
+  const [fromCity,    setFromCity]    = useState(() => searchParams.get("from") ?? "");
+  const [toCity,      setToCity]      = useState(() => searchParams.get("to") ?? "");
+  const [date,        setDate]        = useState(() => searchParams.get("date") ?? "");
+  const [passengers,  setPassengers]  = useState(() => Math.max(1, Number(searchParams.get("passengers")) || 1));
   const [budget,      setBudget]      = useState("");
   const [phone,       setPhone]       = useState("");
   const [note,        setNote]        = useState("");
@@ -104,7 +107,7 @@ export default function PostRequestPage() {
     setAccessories(prev => prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id]);
   }
 
-  const inp = "h-12 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 text-sm font-extrabold text-gray-800 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 transition placeholder-gray-400";
+  const inp = "h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-extrabold text-slate-800 outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-100 transition placeholder-slate-400";
 
   async function handleSubmit() {
     const { data: userData } = await supabase.auth.getUser();
@@ -113,48 +116,41 @@ export default function PostRequestPage() {
     if (fromCity === toCity) { setMessage(t.sameCity); setMsgType("err"); return; }
 
     setLoading(true);
-    const { error } = await supabase.from("requests").insert([{
-      user_id: userData.user.id, from_city: fromCity, to_city: toCity,
+    const { error } = await api("/requests", { method: "POST", body: {
+      from_city: fromCity, to_city: toCity,
       departure_date: date, passengers,
       budget: budget ? Number(budget) : null,
       phone, note: note || null, accessories,
-    }]);
+    } });
     setLoading(false);
-    if (error) { setMessage(t.error); setMsgType("err"); return; }
+    if (error) { setMessage(error.message); setMsgType("err"); return; }
     setMessage(t.success); setMsgType("ok");
-    setTimeout(() => { router.push("/"); router.refresh(); }, 1200);
+    setTimeout(() => { router.push("/my-requests"); router.refresh(); }, 1200);
   }
 
   const sectionHdr = (num: number, label: string, sub?: string) => (
     <div className="flex items-center gap-3 border-b border-gray-100 px-6 py-4">
-      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-600 text-xs font-black text-white">{num}</div>
+      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-violet-600 text-xs font-black text-white">{num}</div>
       <span className="font-black text-gray-800">{label}</span>
       {sub && <span className="ml-1 text-xs font-bold text-gray-400">{sub}</span>}
     </div>
   );
 
   return (
-    <div className="min-h-screen font-sans bg-gray-50">
-      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_#ede9fe_0,_#f8fafc_36%,_#f8fafc_100%)] font-sans">
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
 
         {/* Back */}
         <div className="mb-6">
           <Link href="/"
-            className="inline-flex items-center gap-1.5 rounded-2xl border-2 border-gray-200 bg-white px-4 py-2 text-sm font-black text-gray-700 shadow-sm hover:bg-gray-50 hover:text-emerald-600 hover:border-emerald-200 transition">
+            className="inline-flex items-center gap-1.5 rounded-2xl border-2 border-gray-200 bg-white px-4 py-2 text-sm font-black text-gray-700 shadow-sm hover:bg-gray-50 hover:text-violet-600 hover:border-violet-200 transition">
             <IconArrowLeft size={16} stroke={2.5} /> {t.back}
           </Link>
         </div>
 
-        {/* Header */}
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-emerald-600 shadow-xl shadow-emerald-200">
-            <IconUser size={32} stroke={1.5} className="text-white" />
-          </div>
-          <h1 className="text-3xl font-black text-gray-900">{t.title}</h1>
-          <p className="mt-2 font-extrabold text-gray-500 text-sm">{t.sub}</p>
-        </div>
+        <ScenicPageHero eyebrow={lang === "ka" ? "მგზავრის მოთხოვნა" : "PASSENGER REQUEST"} title={t.title} subtitle={t.sub} lang={lang} from={fromCity || undefined} to={toCity || undefined} meta={<span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-2 text-xs font-black backdrop-blur"><IconUser size={15} />{t.step1}</span>} />
 
-        <div className="space-y-4">
+        <div className="relative z-10 mx-auto -mt-5 max-w-3xl space-y-4 sm:-mt-6">
 
           {/* ── Section 1: Route ── */}
           <div className="rounded-3xl border border-gray-200 bg-white shadow-sm overflow-visible">
@@ -170,19 +166,19 @@ export default function PostRequestPage() {
                 </div>
               ))}
               {fromCity && toCity && (
-                <div className="sm:col-span-2 flex items-center gap-4 rounded-2xl border border-emerald-100 bg-gradient-to-r from-emerald-50 to-teal-50 px-5 py-4">
+                <div className="sm:col-span-2 flex items-center gap-4 rounded-2xl border border-violet-100 bg-gradient-to-r from-violet-50 to-purple-50 px-5 py-4">
                   <div className="text-center">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400">From</p>
-                    <p className="text-lg font-black text-emerald-800">{lang === "ka" ? CITIES.find(c => c.en === fromCity)?.ka : fromCity}</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-violet-400">From</p>
+                    <p className="text-lg font-black text-violet-800">{lang === "ka" ? CITIES.find(c => c.en === fromCity)?.ka : fromCity}</p>
                   </div>
                   <div className="flex-1 flex items-center justify-center gap-1">
-                    <div className="h-px flex-1 bg-emerald-200" />
-                    <IconUser size={20} stroke={1.5} className="text-emerald-500" />
-                    <div className="h-px flex-1 bg-emerald-200" />
+                    <div className="h-px flex-1 bg-violet-200" />
+                    <IconUser size={20} stroke={1.5} className="text-violet-500" />
+                    <div className="h-px flex-1 bg-violet-200" />
                   </div>
                   <div className="text-center">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400">To</p>
-                    <p className="text-lg font-black text-emerald-800">{lang === "ka" ? CITIES.find(c => c.en === toCity)?.ka : toCity}</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-violet-400">To</p>
+                    <p className="text-lg font-black text-violet-800">{lang === "ka" ? CITIES.find(c => c.en === toCity)?.ka : toCity}</p>
                   </div>
                 </div>
               )}
@@ -197,8 +193,8 @@ export default function PostRequestPage() {
                 <label className="mb-1.5 flex items-center gap-1.5 text-xs font-black uppercase tracking-wide text-gray-400">
                   <IconCalendar size={12} stroke={2.5} /> {t.date}
                 </label>
-                <input type="date" value={date} onChange={e => setDate(e.target.value)}
-                  min={new Date().toISOString().split("T")[0]} className={inp} />
+                <CustomDateTimePicker mode="date" lang={lang} value={date} onChange={setDate}
+                  min={new Date().toISOString().split("T")[0]} placeholder={t.date} />
               </div>
               <div>
                 <label className="mb-1.5 flex items-center gap-1.5 text-xs font-black uppercase tracking-wide text-gray-400">
@@ -213,14 +209,14 @@ export default function PostRequestPage() {
                 </label>
                 <div className="flex items-center gap-3 h-12">
                   <button type="button" onClick={() => setPassengers(p => Math.max(1, p - 1))}
-                    className="h-12 w-12 rounded-2xl border border-gray-200 bg-gray-50 font-black text-gray-600 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700 active:scale-95 transition shrink-0 flex items-center justify-center">
+                    className="h-12 w-12 rounded-2xl border border-gray-200 bg-gray-50 font-black text-gray-600 hover:bg-violet-50 hover:border-violet-300 hover:text-violet-700 active:scale-95 transition shrink-0 flex items-center justify-center">
                     <IconMinus size={16} stroke={2.5} />
                   </button>
-                  <div className="flex-1 rounded-2xl border border-emerald-200 bg-emerald-50 h-12 flex items-center justify-center">
-                    <span className="text-xl font-black text-emerald-700">{passengers}</span>
+                  <div className="flex-1 rounded-2xl border border-violet-200 bg-violet-50 h-12 flex items-center justify-center">
+                    <span className="text-xl font-black text-violet-700">{passengers}</span>
                   </div>
                   <button type="button" onClick={() => setPassengers(p => Math.min(20, p + 1))}
-                    className="h-12 w-12 rounded-2xl border border-gray-200 bg-gray-50 font-black text-gray-600 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700 active:scale-95 transition shrink-0 flex items-center justify-center">
+                    className="h-12 w-12 rounded-2xl border border-gray-200 bg-gray-50 font-black text-gray-600 hover:bg-violet-50 hover:border-violet-300 hover:text-violet-700 active:scale-95 transition shrink-0 flex items-center justify-center">
                     <IconPlus size={16} stroke={2.5} />
                   </button>
                 </div>
@@ -239,7 +235,7 @@ export default function PostRequestPage() {
                 </label>
                 <textarea value={note} onChange={e => setNote(e.target.value)}
                   placeholder={t.notePlaceholder} rows={3}
-                  className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-extrabold text-gray-800 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 transition placeholder-gray-400 resize-none" />
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-extrabold text-slate-800 outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-100 transition placeholder-slate-400 resize-none" />
               </div>
             </div>
           </div>
@@ -255,18 +251,18 @@ export default function PostRequestPage() {
                   return (
                     <button key={a.id} type="button" onClick={() => toggleAccessory(a.id)}
                       className={`flex items-center gap-2.5 rounded-2xl border-2 px-5 py-3 text-sm font-black transition select-none ${
-                        on ? "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm"
+                        on ? "border-violet-500 bg-violet-50 text-violet-700 shadow-sm"
                            : "border-gray-200 bg-gray-50 text-gray-500 hover:border-gray-300 hover:bg-white"
                       }`}>
                       <Icon size={18} stroke={2} />
                       <span>{lang === "ka" ? a.ka : a.en}</span>
-                      {on && <IconCheck size={14} stroke={3} className="text-emerald-500 shrink-0" />}
+                      {on && <IconCheck size={14} stroke={3} className="text-violet-500 shrink-0" />}
                     </button>
                   );
                 })}
               </div>
               {accessories.length > 0 && (
-                <p className="mt-3 text-xs font-black text-emerald-500 flex items-center gap-1">
+                <p className="mt-3 text-xs font-black text-violet-500 flex items-center gap-1">
                   <IconCheck size={14} stroke={3} /> {accessories.length} {lang === "ka" ? "მონიშნულია" : "selected"}
                 </p>
               )}
@@ -277,7 +273,7 @@ export default function PostRequestPage() {
           {message && (
             <div className={`rounded-2xl px-5 py-4 text-sm font-extrabold flex items-center gap-2 ${
               msgType === "ok"   ? "bg-green-50 border border-green-200 text-green-700" :
-              msgType === "warn" ? "bg-amber-50 border border-amber-200 text-amber-700" :
+              msgType === "warn" ? "bg-violet-50 border border-violet-200 text-violet-700" :
                                    "bg-red-50 border border-red-200 text-red-600"
             }`}>
               {msgType === "ok"   && <IconCircleCheck size={18} stroke={2.5} />}
@@ -291,7 +287,7 @@ export default function PostRequestPage() {
           {/* Submit */}
           <div className="flex gap-3 pb-8">
             <button onClick={handleSubmit} disabled={loading}
-              className="h-14 flex-1 inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 font-black text-white text-base hover:bg-emerald-700 disabled:opacity-50 transition shadow-lg shadow-emerald-200">
+              className="h-14 flex-1 inline-flex items-center justify-center gap-2 rounded-2xl bg-violet-600 font-black text-white text-base hover:bg-violet-700 disabled:opacity-50 transition shadow-lg shadow-violet-200">
               <IconUser size={20} stroke={2} />
               {loading ? t.publishing : t.submit}
             </button>
@@ -304,5 +300,13 @@ export default function PostRequestPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PostRequestPage() {
+  return (
+    <Suspense fallback={<div className="min-h-[60vh] bg-slate-50" />}>
+      <PostRequestContent />
+    </Suspense>
   );
 }

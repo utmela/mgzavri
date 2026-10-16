@@ -6,23 +6,42 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types tests/backend.test.ts",
+    "test:api": "node scripts/smoke-api.mjs",
+    "check": "npm run lint && npm run typecheck && npm test && npm run build",
+    "test:db": "node scripts/test-database.mjs",
+    "test:db:local": "node scripts/test-local-database.mjs",
+    "backup:full": "node scripts/backup-full.mjs",
+    "backup:verify": "node scripts/verify-full-backup.mjs"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.98.0",
+    "@supabase/supabase-js": "2.118.0",
     "@tabler/icons-react": "^3.40.0",
-    "next": "16.1.6",
-    "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "next": "16.4.2",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
+    "@tailwindcss/postcss": "4.3.3",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.1.6",
-    "tailwindcss": "^4",
+    "embedded-postgres": "17.10.0-beta.17",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.4.2",
+    "pg": "8.23.1",
+    "tailwindcss": "4.3.3",
     "typescript": "^5"
+  },
+  "overrides": {
+    "@next/eslint-plugin-next": {
+      "fast-glob": "npm:tinyglobby@0.2.17"
+    }
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22.18.0"
   }
 }

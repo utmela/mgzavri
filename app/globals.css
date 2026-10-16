@@ -1,26 +1,77 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #faf8ff;
+  --foreground: #24133f;
+  --surface: #ffffff;
+  --surface-soft: #f5f0ff;
+  --border: #e5d9f8;
+  --primary: #6d28d9;
+  --primary-dark: #4c1d95;
+  --font-ui: "Segoe UI Variable Text", "Noto Sans Georgian", "Segoe UI", Arial, sans-serif;
+  --font-display: "Segoe UI Variable Display", "Noto Sans Georgian", "Segoe UI", Arial, sans-serif;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-ui);
+  --font-mono: Consolas, "Courier New", monospace;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-ui);
+  font-weight: 400;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-kerning: normal;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  font-weight: 650;
+  letter-spacing: -0.018em;
+  line-height: 1.18;
+}
+
+/* The original interface used 800–900 weights almost everywhere. These
+   restrained overrides keep hierarchy clear without making every label shout. */
+.font-black {
+  font-weight: 650;
+}
+
+.font-extrabold {
+  font-weight: 600;
+}
+
+.font-bold {
+  font-weight: 600;
+}
+
+a,
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 3px solid #c4b5fd;
+  outline-offset: 2px;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  background: #ddd6fe;
+  color: #2e1065;
 }

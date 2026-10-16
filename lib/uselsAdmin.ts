@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { api } from "./api";
 import { supabase } from "./supabase";
 
 export function useIsAdmin() {
@@ -9,11 +10,7 @@ export function useIsAdmin() {
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) { setReady(true); return; }
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", data.user.id)
-        .single();
+      const { data: profile } = await api<{ role: string }>("/profile");
 
       setIsAdmin(profile?.role === "admin");
       setReady(true);

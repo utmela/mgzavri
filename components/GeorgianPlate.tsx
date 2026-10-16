@@ -7,6 +7,22 @@ interface Props {
   size?: PlateSize;
 }
 
+function Screw({ side, radius }: { side: "left" | "right"; radius: number }) {
+  return (
+    <div style={{
+      position: "absolute", [side]: radius + 3, top: "50%", transform: "translateY(-50%)",
+      width: radius * 2, height: radius * 2, borderRadius: "50%",
+      background: "radial-gradient(circle at 35% 35%, #e8e8e8, #b0b0b0 55%, #888)",
+      border: "0.5px solid #aaa", boxShadow: "0 1px 2px rgba(0,0,0,0.3), inset 0 0.5px 0 rgba(255,255,255,0.7)", zIndex: 2,
+    }}>
+      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ position: "absolute", width: radius * 0.9, height: radius * 0.18, background: "rgba(0,0,0,0.3)", borderRadius: 1 }} />
+        <div style={{ position: "absolute", width: radius * 0.18, height: radius * 0.9, background: "rgba(0,0,0,0.3)", borderRadius: 1 }} />
+      </div>
+    </div>
+  );
+}
+
 export default function GeorgianPlate({ plate, size = "md" }: Props) {
   if (!plate) return null;
 
@@ -37,38 +53,6 @@ export default function GeorgianPlate({ plate, size = "md" }: Props) {
   // Realistic white plate — very subtle warm-white gradient
   const plateGrad = "linear-gradient(170deg, #FFFFFF 0%, #F8F8F8 50%, #FFFFFF 100%)";
   const stripGrad = "linear-gradient(180deg, #0038A8 0%, #002D99 55%, #002080 100%)";
-
-  function Screw({ side }: { side: "left" | "right" }) {
-    return (
-      <div style={{
-        position: "absolute",
-        [side]: cfg.screwR + 3,
-        top: "50%",
-        transform: "translateY(-50%)",
-        width: cfg.screwR * 2,
-        height: cfg.screwR * 2,
-        borderRadius: "50%",
-        background: "radial-gradient(circle at 35% 35%, #e8e8e8, #b0b0b0 55%, #888)",
-        border: "0.5px solid #aaa",
-        boxShadow: "0 1px 2px rgba(0,0,0,0.3), inset 0 0.5px 0 rgba(255,255,255,0.7)",
-        zIndex: 2,
-      }}>
-        {/* Phillips cross */}
-        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div style={{
-            position: "absolute",
-            width: cfg.screwR * 0.9, height: cfg.screwR * 0.18,
-            background: "rgba(0,0,0,0.3)", borderRadius: 1,
-          }} />
-          <div style={{
-            position: "absolute",
-            width: cfg.screwR * 0.18, height: cfg.screwR * 0.9,
-            background: "rgba(0,0,0,0.3)", borderRadius: 1,
-          }} />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div
@@ -147,8 +131,8 @@ export default function GeorgianPlate({ plate, size = "md" }: Props) {
         minWidth: cfg.minW,
         boxShadow: "inset 0 1px 4px rgba(0,0,0,0.04), inset 0 -1px 2px rgba(0,0,0,0.03)",
       }}>
-        <Screw side="left" />
-        <Screw side="right" />
+        <Screw side="left" radius={cfg.screwR} />
+        <Screw side="right" radius={cfg.screwR} />
 
         {/* Plate number */}
         <span style={{
